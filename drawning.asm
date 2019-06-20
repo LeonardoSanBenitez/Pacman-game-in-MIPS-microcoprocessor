@@ -37,7 +37,7 @@ drawGridForY:
         bge     $s2, $s3, drawGridForYend
         li      $s0, 0
 drawGridForX:
-	# Read and translate color
+	# Read and translate sprite
 	lb	$t0, 0($s4)
 	addi	$a2, $t0, -64
 
@@ -97,6 +97,7 @@ drawGridForYend:
   # | $a1       | 4 ($sp)
   # | $a0       | 0 ($sp)
   # |-----------|
+.globl drawSprite
 drawSprite:
         # Init stack
         addi    $sp, $sp, -40 # Create stack (10 bytes)
@@ -180,4 +181,5 @@ translateColor:
 	la	$t1, colors
 	add	$t2, $t0, $t1
 	lw	$v0, 0($t2)
+	# li	$v0, 0x00b711ff # debug (print always purple)
 	jr	$ra

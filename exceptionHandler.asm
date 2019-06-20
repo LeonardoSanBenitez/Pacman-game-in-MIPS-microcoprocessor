@@ -1,14 +1,11 @@
 #-----------------------------------------------#
 # Exception Handler
 #-----------------------------------------------#
-# Esse código tá meio assombrado
-# não executa a instrução quando volta
-# caga o display (no pixel da interrupção)
-# aparantemente não está restarando o t0
+# Brief: Treat exception finishing execution, and interruptions redirecting to the ISRn function
 .kdata
 EcpH:	.asciiz "\nException: \n"
 .align 2
-EcpR:	.space 128	# space to save registers
+EcpR:	.space 136	# space to save registers
 # Jump Table
 EcpJT: .word Ecp0, Ecpd, Ecpd, Ecpd, Ecp4, Ecp5, Ecp6, Ecp7, Ecp8, Ecp9, Ecp10, Ecpd, Ecp12, Ecp13, Ecpd, Ecp15
 # Names of the exceptions
@@ -24,7 +21,6 @@ EcpN12: .asciiz "OVF"		# Arithmetic overflow
 EcpN13: .asciiz "TRAP"		# Trap Exception (caused by Trap instruction)
 EcpN15: .asciiz "FPE"		# Floating point exception (caused by floating point instruction)
 EcpNd:	.asciiz "Unknown"	# Default state
-
 
 .ktext 0x80000180
 	# Save registers
@@ -62,14 +58,25 @@ EcpNd:	.asciiz "Unknown"	# Default state
 	sw	$29, 116($k1)
 	sw	$30, 120($k1)
 	sw	$31, 124($k1)
+	mfhi	$t0
+	sw	$t0, 128($k1)
+	mflo	$t0
+	sw	$t0, 132($k1)
+	
+	# Disable nested interruts
+	mfc0	$t0, $12		# take status register
+	andi	$t0, $t0, 0xfffffffe	# clear bit IE (Interrupt enable, bit 0)
+	mtc0	$t0, $12
 
+	# Print Header
 	la	$a0, EcpH	# Service print string (header)
 	li	$v0, 4     	# Service parameter (address of string)
 	syscall
 
+	# Read cause
 	mfc0	$s0, $13	# Take cause register
 	srl	$s0, $s0, 2
-	andi	$s0, $s0, 0xf # s0 = cause
+	andi	$s0, $s0, 0xf 	# s0 = cause
 
 	## Swicth (s0){case 1: ...}
 	#check bounds
@@ -86,7 +93,6 @@ EcpNd:	.asciiz "Unknown"	# Default state
 
 # Case 0 (interrupt handler)
 # To change the interrupt priority, change the order on the code
-# Disable nested interrupts???
 Ecp0:
 	addi	$v0, $zero, 4	# print string service
 	la	$a0, EcpN0	# service parameter
@@ -195,8 +201,17 @@ EcpFinish:
 	syscall
 
 EcpOut:
+	# Re-enable interrupts
+	mfc0	$t0, $12		# take status register
+	ori	$t0, $t0, 0x00000001	# set bit IE (Interrupt enable, bit 0)
+	mtc0	$t0, $12
+	
 	# Restore registers
 	la	$k1, EcpR # $k1 = address of ExceptionRegisters
+	lw	$t0, 128($k1)
+	mthi	$t0
+	lw	$t0, 132($k1)
+	mtlo	$t0
 	lw	$0, 0($k1)
 	lw	$1, 4($k1)
 	lw	$2, 8($k1)
@@ -230,8 +245,8 @@ EcpOut:
 	lw	$30, 120($k1)
 	lw	$31, 124($k1)
 
-	# Exception Return
- 	mfc0	$k0, $14 	# $k0 = EPC
- 	addiu	$k0, $k0, 4	# Increment $k0 by 4
- 	mtc0	$k0, $14	# EPC = point to next instruction
+	## If we are returning from an exeption, update ECP (caution: interrupts dont update ecp)
+ 	# mfc0	$k0, $14 	# $k0 = EPC
+ 	# addiu	$k0, $k0, 4	# Increment $k0 by 4
+ 	# mtc0	$k0, $14	# EPC = point to next instruction
  	eret

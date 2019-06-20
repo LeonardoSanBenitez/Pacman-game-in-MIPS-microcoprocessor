@@ -80,14 +80,14 @@ grid:
 #===========================================
 # Colors
 #===========================================
-.eqv BLACK  0x00000000
-.eqv BLUE   0x001111ff
-.eqv PURPLE 0x00b711ff
-.eqv YELLOW 0x00fffc60
-.eqv RED    0x00ff0000
-.eqv GREEN  0x00007000
-.eqv GRAY   0x00a0a0a0
-.eqv WHITE  0x00ffffff
+.eqv BLACK  0x00000000  # 0
+.eqv BLUE   0x001111ff  # 1
+.eqv PURPLE 0x00b711ff  # 2
+.eqv YELLOW 0x00fffc60  # 3
+.eqv RED    0x00ff0000  # 4
+.eqv GREEN  0x00007000  # 5
+.eqv GRAY   0x00a0a0a0  # 6
+.eqv WHITE  0x00ffffff  # 7
 
 colors: .word BLACK, BLUE, PURPLE, YELLOW
         .word RED, GREEN, GRAY, WHITE
@@ -97,7 +97,7 @@ colors: .word BLACK, BLUE, PURPLE, YELLOW
 #===========================================
 .eqv SPRITE_SIZE 49
 sprites:
-# @ = comida
+# @ = 0 = comida
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,6,0,0,0
@@ -105,7 +105,7 @@ sprites:
 .byte 0,0,0,6,0,0,0
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,0,0,0,0
-# A = invencibilidade
+# A = 1 = invencibilidade
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,1,0,0,0
 .byte 0,0,1,1,1,0,0
@@ -113,7 +113,7 @@ sprites:
 .byte 0,0,1,1,1,0,0
 .byte 0,0,0,1,0,0,0
 .byte 0,0,0,0,0,0,0
-# B = inimigo
+# B = 2 = inimigo
 .byte 0,0,0,0,0,0,0
 .byte 0,0,2,2,2,0,0
 .byte 0,2,0,2,0,2,0
@@ -121,7 +121,7 @@ sprites:
 .byte 0,2,2,2,2,2,0
 .byte 0,2,0,2,0,2,0
 .byte 0,0,0,0,0,0,0
-# C = Pacman
+# C = 3 = Pacman
 .byte 0,0,0,0,0,0,0
 .byte 0,0,3,3,3,0,0
 .byte 0,3,3,3,3,3,0
@@ -129,7 +129,7 @@ sprites:
 .byte 0,3,3,3,3,3,0
 .byte 0,0,3,3,3,0,0
 .byte 0,0,0,0,0,0,0
-#Cereja
+# D = 4 = Cereja
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,0,5,5,0
 .byte 0,0,0,5,5,0,0
@@ -137,7 +137,7 @@ sprites:
 .byte 0,4,4,4,0,0,0
 .byte 0,4,4,4,0,0,0
 .byte 0,0,0,0,0,0,0
-#Canto Sup. Esq.
+# E = 5 = Canto Sup. Esq.
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,6,6,6,6
 .byte 0,0,6,6,6,6,6
@@ -145,7 +145,7 @@ sprites:
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,0
-#Canto Sup. Dir.
+# F = 6 =Canto Sup. Dir.
 .byte 0,0,0,0,0,0,0
 .byte 6,6,6,6,0,0,0
 .byte 6,6,6,6,6,0,0
@@ -153,7 +153,7 @@ sprites:
 .byte 6,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
-#Tee Inferior
+# G = 7 = Tee Inferior
 .byte 0,0,0,0,0,0,0
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
@@ -161,7 +161,7 @@ sprites:
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,0
-#Tee Superior
+# H = 8 = Tee Superior
 .byte 0,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
@@ -169,7 +169,7 @@ sprites:
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
 .byte 0,0,0,0,0,0,0
-#Parede Vertical
+# I = 9 = Parede Vertical
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
@@ -177,7 +177,7 @@ sprites:
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
-#Canto Inf. Esq.
+# J = 10 = Canto Inf. Esq.
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,6
@@ -185,7 +185,7 @@ sprites:
 .byte 0,0,6,6,6,6,6
 .byte 0,0,0,6,6,6,6
 .byte 0,0,0,0,0,0,0
-#Canto Inf. Dir.
+# K = 11 = Canto Inf. Dir.
 .byte 0,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
@@ -193,7 +193,7 @@ sprites:
 .byte 6,6,6,6,6,0,0
 .byte 6,6,6,6,0,0,0
 .byte 0,0,0,0,0,0,0
-#Tee Direita
+# L = 12 = Tee Direita
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,6
@@ -201,7 +201,7 @@ sprites:
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,0
-#Tee Esquerda
+# M = 13 = Tee Esquerda
 .byte 0,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
@@ -209,7 +209,7 @@ sprites:
 .byte 6,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
-#Parede Horizontal
+# N = 14 = Parede Horizontal
 .byte 0,0,0,0,0,0,0
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
@@ -217,7 +217,7 @@ sprites:
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
 .byte 0,0,0,0,0,0,0
-#Ponta Esq.
+# O = 15 = Ponta Esq.
 .byte 0,0,0,0,0,0,0
 .byte 0,0,6,6,6,6,6
 .byte 0,6,6,6,6,6,6
@@ -225,7 +225,7 @@ sprites:
 .byte 0,6,6,6,6,6,6
 .byte 0,0,6,6,6,6,6
 .byte 0,0,0,0,0,0,0
-#Ponta Dir.
+# P = 16 = Ponta Dir.
 .byte 0,0,0,0,0,0,0
 .byte 6,6,6,6,6,0,0
 .byte 6,6,6,6,6,6,0
@@ -233,7 +233,7 @@ sprites:
 .byte 6,6,6,6,6,6,0
 .byte 6,6,6,6,6,0,0
 .byte 0,0,0,0,0,0,0
-#Ponta Sup.
+# Q = 17 = Ponta Sup.
 .byte 0,0,0,0,0,0,0
 .byte 0,0,6,6,6,0,0
 .byte 0,6,6,6,6,6,0
@@ -241,7 +241,7 @@ sprites:
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
-#Ponta Inf.
+# R = 18 = Ponta Inf.
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
 .byte 0,6,6,6,6,6,0
@@ -249,7 +249,7 @@ sprites:
 .byte 0,6,6,6,6,6,0
 .byte 0,0,6,6,6,0,0
 .byte 0,0,0,0,0,0,0
-#Cruz
+# S = 19 = Cruz
 .byte 0,6,6,6,6,6,0
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
@@ -257,3 +257,19 @@ sprites:
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,0
+# T = 20 = Fantasma2
+.byte 0,0,0,0,0,0,0
+.byte 0,0,1,1,1,0,0
+.byte 0,1,0,1,0,1,0
+.byte 0,1,1,1,1,1,0
+.byte 0,1,1,1,1,1,0
+.byte 0,1,0,1,0,1,0
+.byte 0,0,0,0,0,0,0
+# U = 21 = Fantasma3
+.byte 0,0,0,0,0,0,0
+.byte 0,0,5,5,5,0,0
+.byte 0,5,0,5,0,5,0
+.byte 0,5,5,5,5,5,0
+.byte 0,5,5,5,5,5,0
+.byte 0,5,0,5,0,5,0
+.byte 0,0,0,0,0,0,0
