@@ -10,7 +10,7 @@
 #  Global data
 # --------------------------------------- #
 
-##################
+# ------------- #
 # Struct agent {
 #   word posX,		// 0 (base)
 #   word posY,		// 4 (base)
@@ -19,12 +19,6 @@
 #   byte type,		// 16 (base)
 #   byte sprite,	// 17 (base)
 # }
-.eqv	STRUCT_AGENT_SIZE 	20
-.eqv	TYPE_PACMAN		0
-.eqv	TYPE_GHOST		1
-.eqv	TYPE_SCARED_GHOST	2
-.eqv	TYPE_LAST		9
-
 .macro	ALLOC_AGENT (%posX, %posY, %movX, %movY, %type, %sprite)
 .data
 .align 2
@@ -32,10 +26,13 @@
 	.byte %type, %sprite
 .end_macro
 
+.eqv	STRUCT_AGENT_SIZE 	20
+.eqv	TYPE_PACMAN		0
+.eqv	TYPE_GHOST		1
+.eqv	TYPE_SCARED_GHOST	2
+.eqv	TYPE_LAST		9
 
-
-
-############
+# ------------- #
 # agent agentsArray[] = ALLOC_AGENT(), ...
 .data
 agentsArray:
@@ -48,7 +45,7 @@ ALLOC_AGENT (133, 105, 0, 1, TYPE_GHOST, 20)
 ALLOC_AGENT (133, 119, 0, 1, TYPE_GHOST, 21)
 ALLOC_AGENT (000, 000, 0, 0, TYPE_LAST, 0)
 
-#################
+# ------------- #
 # struct movementBuffer {
 #   word movX,		// 0(base)
 #   word movY,		// 4(base)
@@ -135,7 +132,7 @@ calculateMovements:
 	sw      $ra, 24($sp)
 
 	move 	$s0, $a0	# s0 = &agent
-	move 	$s1, $a1	# s0 = &movementBuffer
+	move 	$s1, $a1	# s1 = &movementBuffer
 calculateMovementsLoop:
 	lb 	$t9, 16($s0)	# type
 	bne 	$t9, TYPE_GHOST, calculateMovementsPacman
@@ -166,6 +163,8 @@ calculateMovementsLoop:
 		# call visualSearch (agent.posX, agent.posY, 0, -1) ...
 		# call visualSearch (agent.posX, agent.posY, 1, 0) ...
 		# call visualSearch (agent.posX, agent.posY, -1, 0) ...
+
+		j 	calculateMovementsNext
 
 calculateMovementsPacman:
 	bne 	$t9, TYPE_PACMAN, calculateMovementsScaredGhost
@@ -285,11 +284,13 @@ ISR0:
         li      $t7, 83         # t7 = 'S'
         li      $t8, 32         # t8 = ' '
 
-	# if (char == 'a') flagLeft = 1
-	# bne	$s1, $t0, ISR0end
-	# la	$t1, flags
-	# li	$t0, 1
-	# sw	$t0, 0($t1)	# flagLeft = 1m
+	# PROCESS KEYBOARD HERE
+	# if (char == 'a' or char == 'A'){
+	#   movementBuffer.movX = -1
+	#   movementBuffer.movY = 0
+	#   movementBuffer.isValid = 1
+	# }
+	# if (char == 'w' or char == 'W') ...
 ISR0end:
   	lw	$ra, 8($sp)	# restore ra
   	add	$sp, $sp, 16	# destroy stack (4 bytes)
