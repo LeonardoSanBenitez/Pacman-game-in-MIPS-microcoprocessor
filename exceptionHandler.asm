@@ -62,7 +62,8 @@ EcpNd:	.asciiz "Unknown"	# Default state
 	sw	$t0, 128($k1)
 	mflo	$t0
 	sw	$t0, 132($k1)
-	
+	# TODO: save coprocessor 1 (floating point) registers 
+
 	# Disable nested interruts
 	mfc0	$t0, $12		# take status register
 	andi	$t0, $t0, 0xfffffffe	# clear bit IE (Interrupt enable, bit 0)
@@ -205,7 +206,7 @@ EcpOut:
 	mfc0	$t0, $12		# take status register
 	ori	$t0, $t0, 0x00000001	# set bit IE (Interrupt enable, bit 0)
 	mtc0	$t0, $12
-	
+
 	# Restore registers
 	la	$k1, EcpR # $k1 = address of ExceptionRegisters
 	lw	$t0, 128($k1)

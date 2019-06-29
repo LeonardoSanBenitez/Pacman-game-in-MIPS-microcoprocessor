@@ -38,11 +38,11 @@
 agentsArray:
 ALLOC_AGENT (119, 140, 0, 0, TYPE_PACMAN, 3)
 ALLOC_AGENT (105, 105, 0, 1, TYPE_GHOST, 21)
-ALLOC_AGENT (105, 119, 0, 1, TYPE_GHOST, 20)
-ALLOC_AGENT (112, 112, 0, 1, TYPE_GHOST, 2)
-ALLOC_AGENT (126, 112, 0, 1, TYPE_GHOST, 21)
-ALLOC_AGENT (133, 105, 0, 1, TYPE_GHOST, 20)
-ALLOC_AGENT (133, 119, 0, 1, TYPE_GHOST, 21)
+#ALLOC_AGENT (105, 119, 0, 0, TYPE_GHOST, 20)
+#ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
+#ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
+#ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
+#ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
 ALLOC_AGENT (000, 000, 0, 0, TYPE_LAST, 0)
 
 # ------------- #
@@ -149,7 +149,17 @@ calculateMovementsLoop:
 		mfhi	$t0
 		bne	$t0, $zero, calculateMovementsNext
 
-		# Calculate movement
+		# checkWall
+		lw $a0, 0($s0)         # a0 = agent.x
+		lw $a1, 4($s0)         # a0 = agent.y
+		li 	$t0, 7
+		div	$a0, $a0, $t0
+		div	$a1, $a1, $t0
+		la  $a2, grid
+	        jal return_wall
+	        beq $v0, $zero, calculateMovementsNext     # if (checkWall == wall) keep running; else revert
+
+		# Revert movement
 		lw 	$t0, 8($s0)
 		lw 	$t1, 12($s0)
 		li	$t2, -1
@@ -168,9 +178,39 @@ calculateMovementsLoop:
 
 calculateMovementsPacman:
 	bne 	$t9, TYPE_PACMAN, calculateMovementsScaredGhost
-		####
+		#### <doesNotTested>
 		## PACMAN MOVEMENT HERE
-		####
+		# la $t0, mov_buf
+		# lw $t1, 0($t0)
+		# beqz $t1, skip_update_move     # if (mov_buf.isValid == False) jump
+		# lw $a0, 4($t0)         # a0 = mov_buf.x
+		# lw $a1, 8($t0)         # a1 = mov_buf.y
+		#
+		# lw $t1, 4($s0)         # t1 = agent.x
+		# lw $t2, 8($s0)         # t2 = agent.y
+		#
+		# div $t3, $t1, 7        # t3 = agent.x/7 (integer)
+		# mfhi $t4
+		# div $t5, $t2, 7        # t5 = agent.y/7 (integer)
+		# mfhi $t6
+		#
+		# bnez $t4, skip_update_move     # if (agent.x%7 != 0 || agent.y%7 != 0) jump
+		# bnez $t6, skip_update_move
+		# add $a0, $a0, $t3              # a0 = mov_buf.x + agent.x/7 (integer)
+		# add $a1, $a1, $t5              # a1 = mov_buf.y + agent.y/7 (integer)
+		# la  $a2, grid
+		# jal return_wall
+		# bnez $v0, skip_update_move     # if (checkWall == wall) jump
+		# la $t0, mov_buf
+		# lw $a0, 4($t0)
+		# lw $a1, 8($t0)
+		# sw $a0, 12($s0)                # agent.movX = mov_buf.x
+		# sw $a1, 16($s0)                # agent.movY = mov_buf.y
+		# sw $zero, 0($t0)               # clear mov_buf.isValid
+		#
+		# skip_update_move:
+
+		#### </doesNotTested>
 		j 	calculateMovementsNext
 calculateMovementsScaredGhost:
 	bne 	$t9, TYPE_SCARED_GHOST, calculateMovementsEnd
@@ -222,6 +262,7 @@ moveAgents:
 
 	move 	$s0, $a0	# s0 = &agent
 moveAgentsLoop:
+	# TODO: para os fantasas, preciso redesenhar o sprite atual antes de move-lo para a proxima posição
 	lb 	$t0, 16($s0)	# load type
 	beq 	$t0, TYPE_LAST, moveAgentsEnd
 	lb 	$a2, 17($s0)	# load sprite
@@ -246,6 +287,58 @@ moveAgentsEnd:
 	addi    $sp, $sp, 24 	# Destroy stack (6 bytes)
 
 	jr 	$ra
+
+####### <doesNotTested>
+# (X,Y, *gride)
+# Mult por linha, soma coluna, mult por 4 e soma com endere�o base
+.globl return_id
+return_id:
+       addi $sp, $sp, -32
+       sw $ra, 24($sp)
+       sw $s0, 16($sp)
+       sw $s1, 20($sp)
+
+       move $s0, $a1	# s0 = Y
+       move $s1, $a0	# s1 = X
+
+       mulu $s0, $s0, GRID_COLS # s0 *= 35
+       add $s1, $s1, $s0
+       add  $s1,$s1, $a2
+       lb   $s1, 0($s1)		# load from (&grid + X + 35Y)
+       addi $v0, $s1, -64
+
+       lw $ra, 24($sp)
+       lw $s0, 16($sp)
+       lw $s1, 20($sp)
+
+       addi $sp, $sp, 32
+       jr $ra
+#---------------------------------------------------
+#Return_wall
+# (X,Y, *gride)
+# return true if that position is a wall
+.globl return_wall
+return_wall:
+       addi $sp, $sp, -24
+       sw $ra, 16($sp)
+
+       jal return_id
+       bge $v0, 5, ret_true
+ret_11:
+       li $v0, 0
+       b endd
+
+ret_true:
+      # beq $v0, 20, ret_11
+       li $v0, 1
+endd:
+       lw $ra, 16($sp)
+
+
+
+       addi $sp, $sp, 24
+       jr $ra
+####### </doesNotTested>
 
 # ------------------------------------------------------------------------------------------------- #
 # INTERRUPT SERVICE ROUTINES

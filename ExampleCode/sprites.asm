@@ -7,12 +7,12 @@ main:
     li $a0, 35
     li $a1, 35
     la $a2, grid
-    jal draw_grid    
+    jal draw_grid
     #hlt: b hlt
     	la $s5, 0xffff0000
 	li $s6, 0x02
 	sw $s6, 0($s5)
-	
+
 
 	# TESTE DRAW SPRITE
 	la $s0, pacman
@@ -21,22 +21,22 @@ main2:
 	lw $a1, 8($s0)
 	lw $a2, 0($s0)
 	jal draw_sprite
-	
+
 	la $t0, mov_buf
 	lw $t1, 0($t0)
 	beqz $t1, skip_update_move
 	#apply nem mov vector
 	lw $a0, 4($t0)
 	lw $a1, 8($t0)
-	
+
 	lw $t1, 4($s0)
 	lw $t2, 8($s0)
-	
+
 	div $t3, $t1, 7
 	mfhi $t4
 	div $t5, $t2, 7
 	mfhi $t6
-	
+
 	bnez $t4, skip_update_move
 	bnez $t6, skip_update_move
 	add $a0, $a0, $t3
@@ -50,20 +50,20 @@ main2:
 	sw $a0, 12($s0)
 	sw $a1, 16($s0)
 	sw $zero, 0($t0)
-	
-skip_update_move:	
+
+skip_update_move:
 	move $a0, $s0
 	jal apply_movement
-	
+
 	## DELAY(50)
         li $v0, 32
         li $a0, 25
         syscall
-	
+
 	##=========
     b main2
-    
-    
+
+
 # draw_grid(width, height, *grid_table)
 .globl draw_grid
 draw_grid:
@@ -74,20 +74,20 @@ draw_grid:
 	sw $s2, 24($sp)
  	sw $s3, 28($sp)
 	sw $s4, 32($sp)
-	
+
 	move $s0, $a0
 	move $s1, $a1
 	move $s2, $a2
-	
+
 	li   $s3, 0
-	
+
 linha:	bge  $s3, $s0, exit_grid
 	li   $s4, 0
 coluna:	bge  $s4, $s1, exit_coluna
 	lb   $a2, 0($s2)
 	addi $a2,$a2,-64
-	mulu $a1, $s3, 7 
-	mulu $a0, $s4, 7 
+	mulu $a1, $s3, 7
+	mulu $a0, $s4, 7
 	jal  draw_sprite
 	addi $s2,$s2,1
 	addi 	$s4, $s4, 1
@@ -95,7 +95,7 @@ coluna:	bge  $s4, $s1, exit_coluna
 exit_coluna:
 	addi 	$s3, $s3, 1
 	jal 	linha
-exit_grid:	
+exit_grid:
 	lw $ra, 36($sp)
 	lw $s0, 16($sp)
 	lw $s1, 20($sp)
@@ -109,7 +109,7 @@ exit_grid:
 # draw_sprite(X, Y, sprite_id)
 .globl draw_sprite
 draw_sprite:
-	
+
 	addi $sp, $sp, -40
 	sw $ra, 36($sp)
 	sw $s0, 16($sp)
@@ -117,18 +117,18 @@ draw_sprite:
 	sw $s2, 24($sp)
  	sw $s3, 28($sp)
 	sw $s4, 32($sp)
-	
+
 	move $s0, $a0
 	move $s1, $a1
-	
+
 	la $s2, sprites #lw t0, 0(i*4+ender)
 	mul $t1, $a2, 49
 	add $s2, $t1, $s2
 
-	
-	la $s4, colors	
+
+	la $s4, colors
 	li $s3, 0
-dra:	
+dra:
 	bge $s3, SPRITE_SIZE, dra_end
 	lbu $t3, 0($s2)
 	sll $t3, $t3, 2
@@ -138,14 +138,14 @@ dra:
 	mfhi $t6 #t6 X
 	add $a0, $s0, $t6
 	add $a1, $s1, $t5
-	
+
 	jal set_pixel
 	addi $s3, $s3, 1 #div por 7 o resto vai ser x e outro y
 	addi $s2, $s2, 1
 	b dra
 dra_end:
-	
-	
+
+
 	lw $ra, 36($sp)
 	lw $s0, 16($sp)
 	lw $s1, 20($sp)
@@ -153,9 +153,9 @@ dra_end:
  	lw $s3, 28($sp)
  	lw $s4, 32($sp)
 	addi $sp, $sp, 40
-	
+
     	jr   $ra
-	
+
 # set_pixel(X, Y, color)
 .globl set_pixel
 set_pixel:
@@ -166,14 +166,14 @@ set_pixel:
    	add $a0, $a0, $t0
    	sw  $a2, 0($a0)
    	jr  $ra
-   	
+
  .globl stop_sprite
  stop_sprite:
- 
+
  	sw $zero, 12($a0)
  	sw $zero, 16($a0)
  	jr $ra
- 	
+
  	#move_sprite(*struct,mov_x, mov_y)
   .globl move_sprite
  move_sprite:
@@ -190,32 +190,32 @@ set_pixel:
 	sw $s2, 24($sp)
 	sw $s3, 28($sp)
 	sw $s4, 32($sp)
-	
+
 	move $s0, $a0
- 
+
  	lw $t0, 4($s0)
  	lw $t1, 8($s0)
  	lw $t2, 12($s0)
 	lw $t3, 16($s0)
-	
-	li $t5, 7 
-	
+
+	li $t5, 7
+
 	divu $t0, $t5
 	mflo $a0
 	mfhi $t4
 	divu $t1, $t5
 	mflo $a1
 	mfhi $t5
-	
-	
-	
+
+
+
 	beq $t3, -1, subir	# Movimento de subida
 	beq $t3, 1, descer 	# Movimento de decida
 	beq $t2, -1, esquerda	#movimento para esquerda
 	beq $t2, 1, direita  	#movimento para direita
 	b end_apply
 
-subir:	
+subir:
 	bnez $t4, end_apply
 	bnez $t5, exit_moviment
 	add $a1, $a1, $t3
@@ -229,41 +229,41 @@ esquerda:
 	bnez $t5, end_apply
 	bnez $t4, exit_moviment
 	add $a0, $a0, $t2
-	b exit_moviment			
+	b exit_moviment
 direita:
 	bnez $t5, end_apply
 	bnez $t4, exit_moviment
 	add $a0, $a0, $t2
-	
+
 exit_moviment:
 	la $a2, grid
-	move $s1, $a0 
+	move $s1, $a0
 	move $s2, $a1
-	jal return_wall #(Posição x do grid, posição Y do grid, *grid)
+	jal return_wall #(Posiï¿½ï¿½o x do grid, posiï¿½ï¿½o Y do grid, *grid)
 	bnez $v0, end_apply
-	
-	move $a0, $s1 
+
+	move $a0, $s1
 	move $a1, $s2
 	la   $a2, grid
 	jal func_score
-	
-	
-	move $a0, $s1 
+
+
+	move $a0, $s1
 	move $a1, $s2
 	la   $a2, grid
-	add $s3, $t0, $t2	
+	add $s3, $t0, $t2
 	add $s4, $t1, $t3
 	jal print_black
-	
-	
+
+
 	la $s0, pacman
-	sw $s3, 4($s0)	#grava a proxima posição para imprimir o sprite
-	sw $s4, 8($s0)	#grava a proxima posição para imprimir o sprite
+	sw $s3, 4($s0)	#grava a proxima posiï¿½ï¿½o para imprimir o sprite
+	sw $s4, 8($s0)	#grava a proxima posiï¿½ï¿½o para imprimir o sprite
 	#b apply_final
 end_apply:
 
 #apply_final:
-	
+
 	lw $ra, 36($sp)
 	lw $s0, 16($sp)
 	lw $s1, 20($sp)
@@ -272,16 +272,16 @@ end_apply:
 	lw $s4, 32($sp)
 	addi $sp, $sp, 40
 	jr $ra
-	
+
  # (X,Y, *gride)
- # Mult por linha, soma coluna, mult por 4 e soma com endereço base
+ # Mult por linha, soma coluna, mult por 4 e soma com endereï¿½o base
  .globl return_id
 return_id:
 	addi $sp, $sp, -32
 	sw $ra, 24($sp)
 	sw $s0, 16($sp)
 	sw $s1, 20($sp)
-	
+
 	move $s0, $a1
 	move $s1, $a0
 
@@ -290,33 +290,33 @@ return_id:
 	add  $s1,$s1, $a2
 	lb   $s1, 0($s1)
 	addi $v0, $s1, -64
-		
+
 	lw $ra, 24($sp)
 	lw $s0, 16($sp)
 	lw $s1, 20($sp)
-	
+
 	addi $sp, $sp, 32
 	jr $ra
 #---------------------------------------------------
 #Return_wall
  # (X,Y, *gride)
-.globl return_wall 
+.globl return_wall
 return_wall:
 	addi $sp, $sp, -24
 	sw $ra, 16($sp)
-	
+
 	jal return_id
 	bge $v0, 5, ret_true
-ret_11:	
+ret_11:
 	li $v0, 0
 	b endd
-	
+
 ret_true:
 	beq $v0, 20, ret_11
 	li $v0, 1
- endd: 	
+ endd:
  	lw $ra, 16($sp)
- 	
+
 
 
 	addi $sp, $sp, 24
@@ -327,82 +327,82 @@ func_score:
 	addi $sp, $sp, -24
 	sw $ra, 20($sp)
 	sw $s0, 16($sp)
-	
+
 	jal return_id
 	beq $v0, 4, ret_score
 	#beq $v0, 1, invisible
 	li $v0, 0
 	b end_
-	
+
 ret_score:
-	la $a0, str #str é la do .data str: .asciiz "\nScore: "
+	la $a0, str #str ï¿½ la do .data str: .asciiz "\nScore: "
 	li $v0, 4
 	syscall
-	
+
 	li $v0, 5
-	
-	la $s0, score #score é um .data score: .word 0
+
+	la $s0, score #score ï¿½ um .data score: .word 0
 	lw $a0, 0($s0)
-	
+
 	add $a0, $a0, $v0
-	
+
 	sw $a0, 0($s0)
-	
+
 	li $v0, 1
 	syscall
 #	b end_
 
 #invisible:
 #	la pacman
-#	li $s0, 
+#	li $s0,
 
 
-end_: 		
+end_:
  	lw $ra, 20($sp)
  	lw $s0, 16($sp)
 	addi $sp, $sp, 24
-	jr $ra 
-	
-# Print_black(X dogrid, Y do gride, *grid) 
-.globl print_black	
+	jr $ra
+
+# Print_black(X dogrid, Y do gride, *grid)
+.globl print_black
 print_black:
-	
+
 	addi $sp, $sp, -32
 	sw $ra, 24($sp)
 	sw $s0, 16($sp)
 	sw $s1, 20($sp)
-	
+
 	jal return_id
 	beq $v0, 20, end_ra
 
 	move $s0, $a1
 	move $s1, $a0
-	
+
 	mulu $s0, $s0, GRID_COLS
 	add  $s1, $s1, $s0
 	add  $s1,$s1, $a2
 	li   $s0, 84 # Salva o id do spreite preto ja somando com 64
-	sb   $s0, 0($s1) 
-	
+	sb   $s0, 0($s1)
+
 	#print na tela
-	mulu $a0, $a0, 7 
-	mulu $a1, $a1, 7 
+	mulu $a0, $a0, 7
+	mulu $a1, $a1, 7
 	li $a2, 20
 	jal draw_sprite
-end_ra:		
+end_ra:
 	lw $ra, 24($sp)
  	lw $s0, 16($sp)
  	lw $s1, 20($sp)
 	addi $sp, $sp, 32
-	jr $ra 
-	
-								
+	jr $ra
+
+
 #animaÃ§Ã£o + teclado + mov + stop + strcut
 
 .ktext 0x80000180
-  move  $k0, $at      # $k0 = $at 
-  la    $k1, _regs    # $k1 = address of _regs 
-  
+  move  $k0, $at      # $k0 = $at
+  la    $k1, _regs    # $k1 = address of _regs
+
   sw    $k0, 0($k1)   #at
   sw    $v0, 4($k1)
   sw    $v1, 8($k1)
@@ -411,7 +411,7 @@ end_ra:
   sw    $a2, 24($k1)
   sw    $a3, 28($k1)
   sw    $t0, 32($k1)
-  sw    $t1, 36($k1) 
+  sw    $t1, 36($k1)
   sw    $t2, 40($k1)
   sw    $t3, 44($k1)
   sw    $t4, 48($k1)
@@ -421,7 +421,7 @@ end_ra:
   sw    $s0, 64($k1)
   sw    $s1, 68($k1)
   sw    $s2, 72($k1)
-  sw    $s3, 76($k1) 
+  sw    $s3, 76($k1)
   sw    $s4, 80($k1)
   sw    $s5, 84($k1)
   sw    $s6, 88($k1)
@@ -436,10 +436,10 @@ end_ra:
   sw    $k0, 120($k1)
   mflo  $k0
   sw    $k0, 124($k1)
-  
 
-  #la    $a0, _msg1    # $a0 = address of _msg1 
-  #i    $v0, 4        # $v0 = service 4 
+
+  #la    $a0, _msg1    # $a0 = address of _msg1
+  #i    $v0, 4        # $v0 = service 4
   #syscall             # Print _msg3
 
 
@@ -449,18 +449,18 @@ end_ra:
   add 	$a1, $a1, $a0 	# EndereÃ§o do elemento na jtable
   lw    $a1, 0($a1)	# Carrego valor do elemento em $t0
   jr 	$a1
-  
+
 case0:
-    #print hardware interrupt 
-    
-    
+    #print hardware interrupt
+
+
    #li $v0, 4
-   # la $a0, hardware_interrupt 
+   # la $a0, hardware_interrupt
    # syscall
     mfc0  $a0, $14
     addi $a0, $a0, -4
     mtc0  $a0, $14
-    
+
     la $a2, 0xffff0000  #Carregando endereï¿½o com as informaï¿½ï¿½es do teclado
     lw $a1, 4($a2)	#Carregando dados lidos pelo teclado
     bne $a1, 100, mov_01
@@ -522,7 +522,7 @@ case3:
 case11:
 case14:
 
-    #print invalid exception 
+    #print invalid exception
     li $v0, 4
     la $a0, invalid
     syscall
@@ -534,7 +534,7 @@ case4:
     syscall
     j   switch_case_exit
 case5:
-#print ADDRS 
+#print ADDRS
     li $v0, 4
     la $a0, addrs
     syscall
@@ -599,7 +599,7 @@ default:
     syscall
 switch_case_exit:
 
-  la    $k1, _regs    # $k1 = address of _regs 
+  la    $k1, _regs    # $k1 = address of _regs
   lw    $k0, 0($k1)   #at
   lw    $v0, 4($k1)
   lw    $v1, 8($k1)
@@ -608,7 +608,7 @@ switch_case_exit:
   lw    $a2, 24($k1)
   lw    $a3, 28($k1)
   lw    $t0, 32($k1)
-  lw    $t1, 36($k1) 
+  lw    $t1, 36($k1)
   lw    $t2, 40($k1)
   lw    $t3, 44($k1)
   lw    $t4, 48($k1)
@@ -618,7 +618,7 @@ switch_case_exit:
   lw    $s0, 64($k1)
   lw    $s1, 68($k1)
   lw    $s2, 72($k1)
-  lw    $s3, 76($k1) 
+  lw    $s3, 76($k1)
   lw    $s4, 80($k1)
   lw    $s5, 84($k1)
   lw    $s6, 88($k1)
@@ -633,10 +633,10 @@ switch_case_exit:
   mthi  $k0
   lw    $k0, 124($k1)
   mtlo  $k0
-  
-  mfc0  $k0, $14      # $k0 = EPC 
-  addiu $k0, $k0, 4   # Increment $k0 by 4 
-  mtc0  $k0, $14      # EPC = point to next instruction 
+
+  mfc0  $k0, $14      # $k0 = EPC
+  addiu $k0, $k0, 4   # Increment $k0 by 4
+  mtc0  $k0, $14      # EPC = point to next instruction
   eret
 
 .kdata
@@ -644,9 +644,9 @@ jtable: .word case0, case1, case2, case3, case4, case5, case6, case7, case8, cas
 
 # Declarar todas as variaveis da tabela de exceï¿½ï¿½o
 
-invalid: 		.asciiz "Exceï¿½ï¿½o nï¿½o encontrad a" 
-arithmetic:	 	.asciiz "Erro de overflow" 
-hardware_interrupt:	.asciiz "hardware interrupt "  
+invalid: 		.asciiz "Exceï¿½ï¿½o nï¿½o encontrad a"
+arithmetic:	 	.asciiz "Erro de overflow"
+hardware_interrupt:	.asciiz "hardware interrupt "
 s_range: 		.asciiz "out_of_range"
 addrl: 			.asciiz "Address Error caused by load or instruction fetch"
 addrs: 			.asciiz "Address Error caused by store instruction"

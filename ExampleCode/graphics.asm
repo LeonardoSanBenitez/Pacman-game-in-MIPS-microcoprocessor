@@ -7,14 +7,14 @@
 .eqv X_SCALE   7
 .eqv Y_SCALE   7
 
-.eqv GRID_ROWS 35       
+.eqv GRID_ROWS 35
 .eqv GRID_COLS 35
 
-.eqv LEFT 0       
+.eqv LEFT 0
 .eqv RIGHT 35
-.eqv UP 35       
+.eqv UP 35
 .eqv DOWN 35
-  
+
 .macro animated_sprite (%name, %id, %pos_x, %pos_y, %mov_x, %mov_y)
 .data
 %name:
@@ -25,15 +25,15 @@
 	.word %mov_x
 	.word %mov_y
 .end_macro
-  
+
 .data
-.data 
+.data
 str: .asciiz "\nScore: "
 score:	.word 0
 
 animated_sprite(pacman, 3, 119, 140, 0, 0)
 mov_buf: .word 0,0,0 # valid, X, Y
- 
+
 # 35x35 Pacman Arena - Sprites 7x7
 grid:
 .ascii "ENNNNNNGNNNGNNNGFNEGNNNGNNNGNNNNNNF"
@@ -81,7 +81,7 @@ grid:
 .eqv GRAY   0x00a0a0a0
 .eqv WHITE  0x00ffffff
 
-colors: .word BLACK, BLUE, PURPLE, YELLOW 
+colors: .word BLACK, BLUE, PURPLE, YELLOW
         .word RED, GREEN, GRAY, WHITE
 
 .eqv SPRITE_SIZE 49
@@ -246,7 +246,7 @@ sprites:
 .byte 6,6,6,6,6,6,6
 .byte 6,6,6,6,6,6,6
 .byte 0,6,6,6,6,6,0
-#sprite preto  17
+#sprite preto = 20
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,0,0,0,0
 .byte 0,0,0,0,0,0,0

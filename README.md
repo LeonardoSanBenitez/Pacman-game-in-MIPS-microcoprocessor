@@ -34,9 +34,9 @@ It was the final project of the Microprocessors lecture at Federal Institute of 
   * Multiagente, porem o fantasma evita interagir com outros agentes (apenas não esbarra com outros fantasmas)  
 * **Programa do agente**
   * Agente reativo simples
-  * Percebe o estado atual e toma uma decisão 
+  * Percebe o estado atual e toma uma decisão
 
-![1560557635419](Images/1560557635419.png)
+  ![1560557635419](Images/1560557635419.png)
 
 * **Movimentação do agente**
   * A cada iteração, o agente monitora seu ‘campo de visão’: linhas retas à frente e aos lados, até encontrar uma parede

@@ -18,26 +18,28 @@
 # grid size: 35x35 sprites
 # Sprite size: 7x7 pixels
 # Sprites simbols
-  # @ = comida
-  # A = invencibilidade
-  # B = inimigo
-  # C = Pacman
-  # D = Cereja
-  # E = Canto superior esquerdo
-  # F = Canto superior direito
-  # G = T inferior
-  # H = T superior
-  # I = Parede vertical
-  # J = Canto inferior esquedo
-  # K = Canto inferior direito
-  # L = T dereita
-  # M = T esquerda
-  # N = Parede horizontal
-  # O = Ponta esquerda
-  # P = Ponta direita
-  # Q = Ponta superior
-  # R = Ponta inferior
-  # S = Cruz
+  # @ = 00 = comida
+  # A = 01 = invencibilidade
+  # B = 02 = inimigo
+  # C = 03 = Pacman
+  # D = 04 = Cereja
+  # E = 05 = Canto superior esquerdo    <- começo das paredes
+  # F = 06 = Canto superior direito
+  # G = 07 = T inferior
+  # H = 08 = T superior
+  # I = 09 = Parede vertical
+  # J = 10 = Canto inferior esquedo
+  # K = 11 = anto inferior direito
+  # L = 12 = T dereita
+  # M = 13 = T esquerda
+  # N = 14 = Parede horizontal
+  # O = 15 = Ponta esquerda
+  # P = 16 = Ponta direita
+  # Q = 17 = Ponta superior
+  # R = 18 = Ponta inferior
+  # S = 19 = Cruz                       <- fim das paredes
+  # T = 20 = fantasma 2
+  # U = 21 = fantasma 3
 
 
 grid:
