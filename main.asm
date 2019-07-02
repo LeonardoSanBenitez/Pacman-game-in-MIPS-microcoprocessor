@@ -5,45 +5,7 @@
 .include "staticGraphics.asm"
 .include "drawning.asm"
 .include "exceptionHandler.asm"
-
-
-
-#########################
-# MACROS
-# if (id>=5 and id<=19) return True
-.macro IS_WALL (%id)
-	blt 	%id, 5, retFalse
-	bgt 	%id, 19, retFalse
-	li 	$v0, 1
-	j 	end
-retFalse:
-	li 	$v0, 0
-end:
-.end_macro
-
-# if (id==2 OR id==20 OR id==21) return True
-.macro IS_GHOST (%id)
-	beq 	%id, 2, retTrue
-	beq 	%id, 20, retTrue
-	beq 	%id, 21, retTrue
-
-	li 	$v0, 0
-	j 	end
-retTrue:
-	li 	$v0, 1
-end:
-.end_macro
-
-# if (id==3) return true
-.macro IS_PACMAN (%id)
-	bne 	%id, 3, retFalse
-	li 	$v0, 1
-	j 	end
-retFalse:
-	li 	$v0, 0
-end:
-.end_macro
-
+.include "macros.asm"
 
 # --------------------------------------- #
 #  Global data
@@ -76,12 +38,12 @@ end:
 .data
 agentsArray:
 ALLOC_AGENT (119, 140, 0, 0, TYPE_PACMAN, 3)
-ALLOC_AGENT (105, 105, 0, 1, TYPE_GHOST, 21)
-ALLOC_AGENT (105, 119, 0, 1, TYPE_GHOST, 20)
-ALLOC_AGENT (112, 112, 0, -1, TYPE_GHOST, 2)
-ALLOC_AGENT (126, 112, 0, -1, TYPE_GHOST, 2)
-ALLOC_AGENT (133, 105, -1, 0, TYPE_GHOST, 20)
-ALLOC_AGENT (133, 119, -1, 0, TYPE_GHOST, 21)
+ALLOC_AGENT (105, 105, 0, 0, TYPE_GHOST, 21)
+ALLOC_AGENT (105, 119, 0, 0, TYPE_GHOST, 20)
+ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
+ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
+ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
+ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
 ALLOC_AGENT (000, 000, 0, 0, TYPE_LAST, 0)
 
 # ------------- #
@@ -111,12 +73,6 @@ main:
 	li	$t1, 0x00000002	# interrupt enable
 	sw	$t1, 0($t0)	# keyboard
 	#sw	$t1, 8($t0)	# display
-
-        # Check display connection
-        # ?
-
-        # Read flags
-        # ?
 
 	# Draw initial grid
 	li      $a0, GRID_ROWS
@@ -178,6 +134,7 @@ mainFinish:
   # | $a1       | 04 ($sp) (available to the next funtion)
   # | $a0       | 00 ($sp) (available to the next funtion)
   # |-----------|
+# TODO: atualizar pseudo codigo
 calculateMovements:
 	addi    $sp, $sp, -32 	# Create stack (8 bytes)
 	sw      $s0, 16($sp)
@@ -189,6 +146,13 @@ calculateMovements:
 calculateMovementsLoop:
 	lb 	$t9, 16($s0)	# type
 	bne 	$t9, TYPE_GHOST, calculateMovementsPacman
+		# if (agent.movX == 0 AND agent.movY==0) go random
+		lw 	$a2, 8($s0)	# a2 = agent.movX
+		lw 	$a3, 12($s0)	# a3 = agent.movY
+		bne	$a2, $zero, calculateMovementsGhostNormal
+		bne	$a3, $zero, calculateMovementsGhostNormal
+		j 	calculateMovementsGhostRandom
+	calculateMovementsGhostNormal:
 		## Calculate Movements of Ghost
 		# if (posX%7==0 and posY%7==0) Calculate movement
 		lw 	$t0, 4($s0)
@@ -202,7 +166,7 @@ calculateMovementsLoop:
 		mfhi	$t0
 		bne	$t0, $zero, calculateMovementsNext
 
-	calculateMovementsVisualSearch:
+	calculateMovementsGhostVS:
 		# Frontal visual search
 		lw $a0, 0($s0)         # a0 = agent.x
 		lw $a1, 4($s0)         # a0 = agent.y
@@ -214,14 +178,78 @@ calculateMovementsLoop:
 		add 	$a0, $a0, $a2
 		add 	$a1, $a1, $a3
 
+
+
 		# visualSeach (agent.x+agent.movX, agent.y+agent.movY, agent.movX, agent.movY)
 		jal 	visualSearch
-
-		# if (dist==0 and type==wall) Change direction
+		move 	$s1, $v0 # s1 = type
+		# if (dist==0 and type==wall) Change direction randomly
 		bne 	$v1, $zero, calculateMovementsNext
-		IS_WALL ($v0)
+		IS_WALL ($s1)
 	        beq 	$v0, $zero, calculateMovementsNext     # if (checkWall == wall) Change direction
 
+	calculateMovementsGhostRandom:
+		# Change direction randomly
+		# switch (rand){
+		#   case 0: movX=0; movY=-1; break; // up
+		#   case 1: movX=-1; movY=0; break; // left
+	  	#   case 2: movX=0; movY=1; break;  // down
+	  	#   case 3: movX=1; movY=0; break;  // right
+	  	# }
+
+		# impede iterações infinitas
+# 		addi 	$t8,$t8, 1
+# 		li 	$t0, 5
+# 		blt 	$t8, $t0, go_On
+# 		sw 	$zero, 8($s0)
+# 		sw 	$zero, 12($s0)
+# 		li 	$t8, 0
+# 		j 	calculateMovementsNext
+# 		go_On:
+
+		li 	$v0, 42
+		li 	$a2, 3
+		syscall
+		bne 	$a0, $zero, calculateMovementsGhostC1
+		# rand = 0 = up
+		li 	$t0, 0
+		li 	$t1, -1
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsGhostVS
+	calculateMovementsGhostC1:
+		addi 	$a0, $a0, -1
+		bne 	$a0, $zero, calculateMovementsGhostC2
+		# rand = 1 = left
+		li 	$t0, -1
+		li 	$t1, 0
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsGhostVS
+	calculateMovementsGhostC2:
+		addi 	$a0, $a0, -1
+		bne 	$a0, $zero, calculateMovementsGhostC3
+		# rand = 2 = down
+		li 	$t0, 0
+		li 	$t1, 1
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsGhostVS
+	calculateMovementsGhostC3:
+		# rand = 3 = right
+		li 	$t0, 1
+		li 	$t1, 0
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsGhostVS
+
+	calculateMovementsGhostRevert:
+		# # else if (type==ghost AND dist<=3) Change revert direction
+		# li 	$t0, 3
+		# bgt 	$v1, $t0, calculateMovementsGhostSeek
+		# IS_GHOST ($s1)
+	        # beq 	$v0, $zero, calculateMovementsGhostSeek
+		#
 		# # Revert movement
 		# lw 	$t0, 8($s0)
 		# lw 	$t1, 12($s0)
@@ -230,57 +258,9 @@ calculateMovementsLoop:
 		# mul	$t1, $t1, $t2
 		# sw 	$t0, 8($s0)
 		# sw 	$t1, 12($s0)
-
-		# Change direction randomly
-		# switch (rand){
-		#   case 0: movX=0; movY=-1;break; // up
-		#   case 1: movX=-1; movY=0;break; // left
-	  	#   case 2: movX=0; movY=1;break;  // down
-	  	#   case 3: movX=1; movY=0;break;  // right
-	  	# }
-		li 	$v0, 42
-		li 	$a2, 3
-		syscall
-		bne 	$a0, $zero, calculateMovementsC1
-		# rand = 0 = up
-		li 	$t0, 0
-		li 	$t1, -1
-		sw 	$t0, 8($s0)
-		sw 	$t1, 12($s0)
-		j 	calculateMovementsVisualSearch
-	calculateMovementsC1:
-		addi 	$a0, $a0, -1
-		bne 	$a0, $zero, calculateMovementsC2
-		# rand = 1 = left
-		li 	$t0, -1
-		li 	$t1, 0
-		sw 	$t0, 8($s0)
-		sw 	$t1, 12($s0)
-		j 	calculateMovementsVisualSearch
-	calculateMovementsC2:
-		addi 	$a0, $a0, -1
-		bne 	$a0, $zero, calculateMovementsC3
-		# rand = 2 = down
-		li 	$t0, 0
-		li 	$t1, 1
-		sw 	$t0, 8($s0)
-		sw 	$t1, 12($s0)
-		j 	calculateMovementsVisualSearch
-	calculateMovementsC3:
-		# rand = 3 = right
-		li 	$t0, 1
-		li 	$t1, 0
-		sw 	$t0, 8($s0)
-		sw 	$t1, 12($s0)
-		j 	calculateMovementsVisualSearch
-
-
-
-		# future AI:
-		# call visualSearch (agent.posX, agent.posY, 0, 1) ...
-		# call visualSearch (agent.posX, agent.posY, 0, -1) ...
-		# call visualSearch (agent.posX, agent.posY, 1, 0) ...
-		# call visualSearch (agent.posX, agent.posY, -1, 0) ...
+		# j 	calculateMovementsGhostVS
+	calculateMovementsGhostSeek:
+		# SEAK AND DESTROOOOYYYY
 
 		j 	calculateMovementsNext
 
@@ -391,11 +371,11 @@ moveAgentsEnd:
 	jr 	$ra
 
 #===========================================
-# FUNCTION int returnId (X,Y, *grid)
+# FUNCTION int gridGetID (X,Y, *grid)
 #===========================================
 # Mult por linha, soma coluna, mult por 4 e soma com endere�o base
-.globl returnId
-returnId:
+.globl gridGetID
+gridGetID:
        addi $sp, $sp, -32
        sw $ra, 24($sp)
        sw $s0, 16($sp)
@@ -420,6 +400,23 @@ returnId:
 #===========================================
 # FUNCTION (type, dist) visualSeach (x, y, dirX, dirY)
 #===========================================
+# Brief: perform an recursive search in straigh line
+# Pseudocode
+  # id = gridGetID (x, y)
+  # for each agent in agentsArray:
+  #   if (agent.type == last) break
+  #   if (agent.x%7==x AND agent.y%7==y) id=agent.sprite
+  # if (id==wall OR id==ghost OR id==pacman)
+  #   type = id
+  #   dist = 0
+  #   return (type, dist)
+  # else
+  #   (type, dist) = visualSeach (x+dirX, y+dirY, dirX, dirY)
+  #   dist++
+  #   return (type, dist)
+# Variabes map
+  # s0 = agent
+  # s1 = ID
 # Stack organization
   # | $a3       | 44 ($sp) (previous frame)
   # | $a2       | 40 ($sp) (previous frame)
@@ -435,35 +432,60 @@ returnId:
   # | $a1       | 04 ($sp) (available to the next funtion)
   # | $a0       | 00 ($sp) (available to the next funtion)
   # |-----------|
+#TODO: receber &grid e &agentsArray como parâmetros
 visualSearch:
 	addi    $sp, $sp, -32 	# Create stack (8 bytes)
-
 	sw      $s0, 16($sp)
 	sw      $s1, 20($sp)
 	sw      $ra, 24($sp)
 
+	# v0 = gridGetID (x, y)
 	sw 	$a2, 40($sp)	# save a2
 	la  	$a2, grid
-	jal 	returnId
-	move 	$s0, $v0	# save v0
+	jal 	gridGetID
+	move 	$s1, $v0	# save v0
 	lw 	$a2, 40($sp)	# restore a2
 
+	# for each agent in agentsArray:
+	la 	$s0, agentsArray 	# s0 = &agent
+visualSearchFor:
+	lb 	$t0, 16 ($s0)
+	beq 	$t0, TYPE_LAST, visualSearchForEnd
+	#if (agent.x%7==x AND agent.y%7==y) id=agent.sprite
+	lw 	$t0, 0($s0)
+	li 	$t3, X_SCALE
+	div 	$t0, $t0, $t3	# t0 = agent.x%7
+	lw 	$t1, 4($s0)
+	li 	$t4, Y_SCALE
+	div 	$t1, $t1, $t4	# t1 = agent.x%7
+
+	bne 	$t0, $a0, visualSearchForNext
+	bne 	$t1, $a1, visualSearchForNext
+	lb 	$s1, 17($s0)
+	j 	visualSearchForEnd
+visualSearchForNext:
+	addi 	$s0, $s0, STRUCT_AGENT_SIZE
+	j 	visualSearchFor
+visualSearchForEnd:
+
 	# if (id==wall OR id==ghost OR id==pac) goto stopCondition
-	IS_WALL ($s0)
+	IS_WALL ($s1)
 	bne  	$v0, $zero, visualSearchStopCondition
-	IS_GHOST ($s0)
+	IS_GHOST ($s1)
 	bne  	$v0, $zero, visualSearchStopCondition
-	IS_PACMAN ($s0)
+	IS_PACMAN ($s1)
 	bne  	$v0, $zero, visualSearchStopCondition
-visualSearchElse:
+
+	# visualSearchElse
 	add 	$a0, $a0, $a2
 	add 	$a1, $a1, $a3
 	jal 	visualSearch
 	addi 	$v1, $v1, 1
 	j 	visualSearchReturn
+
 visualSearchStopCondition:
 	li 	$v1, 0
-	move 	$v0, $s0
+	move 	$v0, $s1
 
 visualSearchReturn:
 	lw      $s0, 16($sp)
@@ -472,10 +494,6 @@ visualSearchReturn:
 	addi    $sp, $sp, 32 	# Destroy stack (8 bytes)
 
 	jr 	$ra
-
-
-
-
 
 # ------------------------------------------------------------------------------------------------- #
 # INTERRUPT SERVICE ROUTINES
