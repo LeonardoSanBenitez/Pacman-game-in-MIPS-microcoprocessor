@@ -38,11 +38,11 @@
 agentsArray:
 ALLOC_AGENT (119, 140, 0, 0, TYPE_PACMAN, 3)
 ALLOC_AGENT (105, 105, 0, 1, TYPE_GHOST, 21)
-#ALLOC_AGENT (105, 119, 0, 0, TYPE_GHOST, 20)
-#ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
-#ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
-#ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
-#ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
+ALLOC_AGENT (105, 119, 0, 1, TYPE_GHOST, 20)
+ALLOC_AGENT (112, 112, 0, -1, TYPE_GHOST, 2)
+ALLOC_AGENT (126, 112, 0, -1, TYPE_GHOST, 2)
+ALLOC_AGENT (133, 105, -1, 0, TYPE_GHOST, 20)
+ALLOC_AGENT (133, 119, -1, 0, TYPE_GHOST, 21)
 ALLOC_AGENT (000, 000, 0, 0, TYPE_LAST, 0)
 
 # ------------- #
@@ -149,24 +149,74 @@ calculateMovementsLoop:
 		mfhi	$t0
 		bne	$t0, $zero, calculateMovementsNext
 
+	calculateMovementsVisualSearch:
 		# checkWall
 		lw $a0, 0($s0)         # a0 = agent.x
 		lw $a1, 4($s0)         # a0 = agent.y
 		li 	$t0, 7
 		div	$a0, $a0, $t0
 		div	$a1, $a1, $t0
+		lw 	$t0, 8($s0)	# t0 = agent.movX
+		lw 	$t1, 12($s0)	# t1 = agent.movY
+		add 	$a0, $a0, $t0
+		add 	$a1, $a1, $t1
 		la  $a2, grid
 	        jal return_wall
 	        beq $v0, $zero, calculateMovementsNext     # if (checkWall == wall) keep running; else revert
 
-		# Revert movement
-		lw 	$t0, 8($s0)
-		lw 	$t1, 12($s0)
-		li	$t2, -1
-		mul	$t0, $t0, $t2
-		mul	$t1, $t1, $t2
+		# # Revert movement
+		# lw 	$t0, 8($s0)
+		# lw 	$t1, 12($s0)
+		# li	$t2, -1
+		# mul	$t0, $t0, $t2
+		# mul	$t1, $t1, $t2
+		# sw 	$t0, 8($s0)
+		# sw 	$t1, 12($s0)
+
+		# Change direction
+		# switch (rand){
+		#   case 0: movX=0; movY=-1;break; // up
+		#   case 1: movX=-1; movY=0;break; // left
+	  	#   case 2: movX=0; movY=1;break;	 // down
+	  	#   case 3: movX=1; movY=0;break;  // right
+	  	# }
+		li 	$v0, 42
+		li 	$a2, 3
+		syscall
+		bne 	$a0, $zero, calculateMovementsC1
+		# rand = 0 = up
+		li 	$t0, 0
+		li 	$t1, -1
 		sw 	$t0, 8($s0)
 		sw 	$t1, 12($s0)
+		j 	calculateMovementsVisualSearch
+	calculateMovementsC1:
+		addi 	$a0, $a0, -1
+		bne 	$a0, $zero, calculateMovementsC2
+		# rand = 1 = left
+		li 	$t0, -1
+		li 	$t1, 0
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsVisualSearch
+	calculateMovementsC2:
+		addi 	$a0, $a0, -1
+		bne 	$a0, $zero, calculateMovementsC3
+		# rand = 2 = down
+		li 	$t0, 0
+		li 	$t1, 1
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsVisualSearch
+	calculateMovementsC3:
+		# rand = 3 = right
+		li 	$t0, 1
+		li 	$t1, 0
+		sw 	$t0, 8($s0)
+		sw 	$t1, 12($s0)
+		j 	calculateMovementsVisualSearch
+
+
 
 		# future AI:
 		# call visualSearch (agent.posX, agent.posY, 0, 1) ...
