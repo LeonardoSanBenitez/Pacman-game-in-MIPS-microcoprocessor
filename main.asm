@@ -6,6 +6,10 @@
 .include "drawning.asm"
 .include "exceptionHandler.asm"
 
+
+
+#########################
+# MACROS
 # if (id>=5 and id<=19) return True
 .macro IS_WALL (%id)
 	blt 	%id, 5, retFalse
@@ -16,6 +20,31 @@ retFalse:
 	li 	$v0, 0
 end:
 .end_macro
+
+# if (id==2 OR id==20 OR id==21) return True
+.macro IS_GHOST (%id)
+	beq 	%id, 2, retTrue
+	beq 	%id, 20, retTrue
+	beq 	%id, 21, retTrue
+
+	li 	$v0, 0
+	j 	end
+retTrue:
+	li 	$v0, 1
+end:
+.end_macro
+
+# if (id==3) return true
+.macro IS_PACMAN (%id)
+	bne 	%id, 3, retFalse
+	li 	$v0, 1
+	j 	end
+retFalse:
+	li 	$v0, 0
+end:
+.end_macro
+
+
 # --------------------------------------- #
 #  Global data
 # --------------------------------------- #
@@ -68,9 +97,15 @@ movementBuffer:
 # --------------------------------------------------- #
 # Main
 # --------------------------------------------------- #
-# TODO: main stack
+# Stack organization
+  # |===========|
+  # | $a1       | 04 ($sp) (available to the next funtion)
+  # | $a0       | 00 ($sp) (available to the next funtion)
+  # |-----------|
 .text 0x00400000
 main:
+	addi 	$sp, $sp, -8 	# Create stack (2 bytes)
+
         # Interrupt enable
 	li	$t0, 0xffff0000	# Mars keyboard and display base addr
 	li	$t1, 0x00000002	# interrupt enable
@@ -90,6 +125,10 @@ main:
         jal     drawGrid
 
 mainLoop:
+
+	# TODO: verify FlagGameOver and goto mainFinish
+	# TODO: verify flagPause and goto mainLoop
+
 	la 	$a0, agentsArray
 	la 	$a1, movementBuffer
 	jal 	calculateMovements
@@ -104,6 +143,12 @@ mainLoop:
 
         b mainLoop
 
+mainFinish:
+	addi 	$sp, $sp, 8 	# Destroy stack (2 bytes)
+
+	li	$v0, 17			# Service terminate
+	li	$a0, 0			# Service parameter (termination result)
+	syscall
 #=================================================================
 # FUNCTION void calculateMovements (*agentsArray, *movementBuffer)
 #=================================================================
@@ -121,22 +166,20 @@ mainLoop:
   #     run away from pacman
   #   }
 # Stack organization
+  # | $a1       | 36 ($sp) (previous frame)
+  # | $a0       | 32 ($sp) (previous frame)
   # |===========|
   # | empty     | 28 ($sp)
   # | $ra       | 24 ($sp)
   # | $s1       | 20 ($sp)
   # | $s0       | 16 ($sp)
   # | $a3       | 12 ($sp) (available to the next funtion)
-  # | $a2       | 8 ($sp) (available to the next funtion)
-  # | $a1       | 4 ($sp) (available to the next funtion)
-  # | $a0       | 0 ($sp) (available to the next funtion)
+  # | $a2       | 08 ($sp) (available to the next funtion)
+  # | $a1       | 04 ($sp) (available to the next funtion)
+  # | $a0       | 00 ($sp) (available to the next funtion)
   # |-----------|
 calculateMovements:
 	addi    $sp, $sp, -32 	# Create stack (8 bytes)
-	sw      $a0, 0($sp)
-	sw      $a1, 4($sp)
-	sw      $a2, 8($sp)
-	sw      $a3, 12($sp)
 	sw      $s0, 16($sp)
 	sw      $s1, 20($sp)
 	sw      $ra, 24($sp)
@@ -160,7 +203,7 @@ calculateMovementsLoop:
 		bne	$t0, $zero, calculateMovementsNext
 
 	calculateMovementsVisualSearch:
-		# checkWall
+		# Frontal visual search
 		lw $a0, 0($s0)         # a0 = agent.x
 		lw $a1, 4($s0)         # a0 = agent.y
 		li 	$t0, 7
@@ -171,7 +214,7 @@ calculateMovementsLoop:
 		add 	$a0, $a0, $a2
 		add 	$a1, $a1, $a3
 
-
+		# visualSeach (agent.x+agent.movX, agent.y+agent.movY, agent.movX, agent.movY)
 		jal 	visualSearch
 
 		# if (dist==0 and type==wall) Change direction
@@ -288,10 +331,6 @@ calculateMovementsNext:
 	j 	calculateMovementsLoop
 
 calculateMovementsEnd:
-	lw      $a0, 0($sp)
-	lw      $a1, 4($sp)
-	lw      $a2, 8($sp)
-	lw      $a3, 12($sp)
 	lw      $s0, 16($sp)
 	lw      $s1, 20($sp)
 	lw      $ra, 24($sp)
@@ -309,19 +348,17 @@ calculateMovementsEnd:
   #   agent.posX = agent.posX + agent.movX
   #   draw (agent.posX, agent.posY, agent.sprite)
 # Stack organization
+  # | $a0       | 32 ($sp) (previous frame)
   # |===========|
   # | empty     | 20 ($sp)
   # | $ra       | 16 ($sp)
   # | $s0       | 12 ($sp)
-  # | $a2       | 8 ($sp) (available to the next funtion)
-  # | $a1       | 4 ($sp) (available to the next funtion)
-  # | $a0       | 0 ($sp) (available to the next funtion)
+  # | $a2       | 08 ($sp) (available to the next funtion)
+  # | $a1       | 04 ($sp) (available to the next funtion)
+  # | $a0       | 00 ($sp) (available to the next funtion)
   # |-----------|
 moveAgents:
 	addi    $sp, $sp, -24 	# Create stack (6 bytes)
-	sw      $a0, 0($sp)
-	sw      $a1, 4($sp)
-	sw      $a2, 8($sp)
 	sw      $s0, 12($sp)
 	sw      $ra, 16($sp)
 
@@ -383,34 +420,62 @@ returnId:
 #===========================================
 # FUNCTION (type, dist) visualSeach (x, y, dirX, dirY)
 #===========================================
+# Stack organization
+  # | $a3       | 44 ($sp) (previous frame)
+  # | $a2       | 40 ($sp) (previous frame)
+  # | $a1       | 36 ($sp) (previous frame)
+  # | $a0       | 32 ($sp) (previous frame)
+  # |===========|
+  # | empty     | 28 ($sp)
+  # | $ra       | 24 ($sp)
+  # | $s1       | 20 ($sp)
+  # | $s0       | 16 ($sp)
+  # | $a3       | 12 ($sp) (available to the next funtion)
+  # | $a2       | 08 ($sp) (available to the next funtion)
+  # | $a1       | 04 ($sp) (available to the next funtion)
+  # | $a0       | 00 ($sp) (available to the next funtion)
+  # |-----------|
 visualSearch:
 	addi    $sp, $sp, -32 	# Create stack (8 bytes)
-	sw      $a0, 0($sp)
-	sw      $a1, 4($sp)
-	sw      $a2, 8($sp)
-	sw      $a3, 12($sp)
+
 	sw      $s0, 16($sp)
 	sw      $s1, 20($sp)
 	sw      $ra, 24($sp)
 
-	move 	$s0, $a2
-	move 	$s1, $a3
-
-
+	sw 	$a2, 40($sp)	# save a2
 	la  	$a2, grid
 	jal 	returnId
-	li 	$v1, 0
+	move 	$s0, $v0	# save v0
+	lw 	$a2, 40($sp)	# restore a2
 
-	lw      $a0, 0($sp)
-	lw      $a1, 4($sp)
-	lw      $a2, 8($sp)
-	lw      $a3, 12($sp)
+	# if (id==wall OR id==ghost OR id==pac) goto stopCondition
+	IS_WALL ($s0)
+	bne  	$v0, $zero, visualSearchStopCondition
+	IS_GHOST ($s0)
+	bne  	$v0, $zero, visualSearchStopCondition
+	IS_PACMAN ($s0)
+	bne  	$v0, $zero, visualSearchStopCondition
+visualSearchElse:
+	add 	$a0, $a0, $a2
+	add 	$a1, $a1, $a3
+	jal 	visualSearch
+	addi 	$v1, $v1, 1
+	j 	visualSearchReturn
+visualSearchStopCondition:
+	li 	$v1, 0
+	move 	$v0, $s0
+
+visualSearchReturn:
 	lw      $s0, 16($sp)
 	lw      $s1, 20($sp)
 	lw      $ra, 24($sp)
 	addi    $sp, $sp, 32 	# Destroy stack (8 bytes)
 
 	jr 	$ra
+
+
+
+
 
 # ------------------------------------------------------------------------------------------------- #
 # INTERRUPT SERVICE ROUTINES
@@ -426,11 +491,11 @@ visualSearch:
   # |===========|
   # | empty     | 12 ($sp)
   # |-----------|
-  # | $ra       | 8 ($sp)
+  # | $ra       | 08 ($sp)
   # |-----------|
-  # | $a1       | 4 ($sp) (available for the next function)
+  # | $a1       | 04 ($sp) (available for the next function)
   # |-----------|
-  # | $a0       | 0 ($sp) (available for the next function)
+  # | $a0       | 00 ($sp) (available for the next function)
   # |-----------|
 ISR0:
 	addi	$sp, $sp, -16	# create stack (4 bytes)

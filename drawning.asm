@@ -13,14 +13,27 @@
   #   for (x=0, x<width; x++)
   #     sprite = *(i++)
   #     drawSprite (x*7, y*7, sprite)
+# Stack organization
+  # | $a2       | 40 ($sp) (previous frame)
+  # | $a1       | 36 ($sp) (previous frame)
+  # | $a0       | 32 ($sp) (previous frame)
+  # |===========|
+  # | empty     | 36 ($sp)
+  # | $ra       | 32 ($sp)
+  # | $s4       | 28 ($sp)
+  # | $s3       | 24 ($sp)
+  # | $s2       | 20 ($sp)
+  # | $s1       | 16 ($sp)
+  # | $s0       | 12 ($sp)
+  # | $a2       | 8 ($sp) (available to the next funtion)
+  # | $a1       | 4 ($sp) (available to the next funtion)
+  # | $a0       | 0 ($sp) (available to the next funtion)
+  # |-----------|
 .text
 .globl drawGrid
 drawGrid:
         # Init stack
         addi    $sp, $sp, -40 # Create stack (10 bytes)
-        sw      $a0, 0($sp)
-        sw      $a1, 4($sp)
-        sw      $a2, 8($sp)
         sw      $s0, 12($sp)
         sw      $s1, 16($sp)
         sw      $s2, 20($sp)
@@ -55,9 +68,6 @@ drawGridForXend:
         j       drawGridForY
 drawGridForYend:
         # Restore stack
-        lw      $a0, 0($sp)
-        lw      $a1, 4($sp)
-        lw      $a2, 8($sp)
         lw      $s0, 12($sp)
         lw      $s1, 16($sp)
         lw      $s2, 20($sp)
@@ -85,6 +95,9 @@ drawGridForYend:
   #      drawPixel (x, y, color)
   #      i++
 # Stack organization
+  # | $a2       | 40 ($sp) (previous frame)
+  # | $a1       | 36 ($sp) (previous frame)
+  # | $a0       | 32 ($sp) (previous frame)
   # |===========|
   # | empty     | 36 ($sp)
   # | $ra       | 32 ($sp)
@@ -93,17 +106,14 @@ drawGridForYend:
   # | $s2       | 20 ($sp)
   # | $s1       | 16 ($sp)
   # | $s0       | 12 ($sp)
-  # | $a2       | 8 ($sp)
-  # | $a1       | 4 ($sp)
-  # | $a0       | 0 ($sp)
+  # | $a2       | 8 ($sp) (available to the next funtion)
+  # | $a1       | 4 ($sp) (available to the next funtion)
+  # | $a0       | 0 ($sp) (available to the next funtion)
   # |-----------|
 .globl drawSprite
 drawSprite:
         # Init stack
         addi    $sp, $sp, -40 # Create stack (10 bytes)
-        sw      $a0, 0($sp)
-        sw      $a1, 4($sp)
-        sw      $a2, 8($sp)
         sw      $s0, 12($sp)
         sw      $s1, 16($sp)
         sw      $s2, 20($sp)
@@ -144,9 +154,6 @@ drawSpriteForXend:
         j       drawSpriteForY
 drawSpriteForYend:
         # Restore stack
-        lw      $a0, 0($sp)
-        lw      $a1, 4($sp)
-        lw      $a2, 8($sp)
         lw      $s0, 12($sp)
         lw      $s1, 16($sp)
         lw      $s2, 20($sp)
