@@ -6,6 +6,16 @@
 .include "drawning.asm"
 .include "exceptionHandler.asm"
 
+# if (id>=5 and id<=19) return True
+.macro IS_WALL (%id)
+	blt 	%id, 5, retFalse
+	bgt 	%id, 19, retFalse
+	li 	$v0, 1
+	j 	end
+retFalse:
+	li 	$v0, 0
+end:
+.end_macro
 # --------------------------------------- #
 #  Global data
 # --------------------------------------- #
@@ -156,13 +166,18 @@ calculateMovementsLoop:
 		li 	$t0, 7
 		div	$a0, $a0, $t0
 		div	$a1, $a1, $t0
-		lw 	$t0, 8($s0)	# t0 = agent.movX
-		lw 	$t1, 12($s0)	# t1 = agent.movY
-		add 	$a0, $a0, $t0
-		add 	$a1, $a1, $t1
-		la  $a2, grid
-	        jal return_wall
-	        beq $v0, $zero, calculateMovementsNext     # if (checkWall == wall) keep running; else revert
+		lw 	$a2, 8($s0)	# a2 = agent.movX
+		lw 	$a3, 12($s0)	# a3 = agent.movY
+		add 	$a0, $a0, $a2
+		add 	$a1, $a1, $a3
+
+
+		jal 	visualSearch
+
+		# if (dist==0 and type==wall) Change direction
+		bne 	$v1, $zero, calculateMovementsNext
+		IS_WALL ($v0)
+	        beq 	$v0, $zero, calculateMovementsNext     # if (checkWall == wall) Change direction
 
 		# # Revert movement
 		# lw 	$t0, 8($s0)
@@ -173,11 +188,11 @@ calculateMovementsLoop:
 		# sw 	$t0, 8($s0)
 		# sw 	$t1, 12($s0)
 
-		# Change direction
+		# Change direction randomly
 		# switch (rand){
 		#   case 0: movX=0; movY=-1;break; // up
 		#   case 1: movX=-1; movY=0;break; // left
-	  	#   case 2: movX=0; movY=1;break;	 // down
+	  	#   case 2: movX=0; movY=1;break;  // down
 	  	#   case 3: movX=1; movY=0;break;  // right
 	  	# }
 		li 	$v0, 42
@@ -338,11 +353,12 @@ moveAgentsEnd:
 
 	jr 	$ra
 
-####### <doesNotTested>
-# (X,Y, *gride)
+#===========================================
+# FUNCTION int returnId (X,Y, *grid)
+#===========================================
 # Mult por linha, soma coluna, mult por 4 e soma com endere�o base
-.globl return_id
-return_id:
+.globl returnId
+returnId:
        addi $sp, $sp, -32
        sw $ra, 24($sp)
        sw $s0, 16($sp)
@@ -363,32 +379,38 @@ return_id:
 
        addi $sp, $sp, 32
        jr $ra
-#---------------------------------------------------
-#Return_wall
-# (X,Y, *gride)
-# return true if that position is a wall
-.globl return_wall
-return_wall:
-       addi $sp, $sp, -24
-       sw $ra, 16($sp)
 
-       jal return_id
-       bge $v0, 5, ret_true
-ret_11:
-       li $v0, 0
-       b endd
+#===========================================
+# FUNCTION (type, dist) visualSeach (x, y, dirX, dirY)
+#===========================================
+visualSearch:
+	addi    $sp, $sp, -32 	# Create stack (8 bytes)
+	sw      $a0, 0($sp)
+	sw      $a1, 4($sp)
+	sw      $a2, 8($sp)
+	sw      $a3, 12($sp)
+	sw      $s0, 16($sp)
+	sw      $s1, 20($sp)
+	sw      $ra, 24($sp)
 
-ret_true:
-      # beq $v0, 20, ret_11
-       li $v0, 1
-endd:
-       lw $ra, 16($sp)
+	move 	$s0, $a2
+	move 	$s1, $a3
 
 
+	la  	$a2, grid
+	jal 	returnId
+	li 	$v1, 0
 
-       addi $sp, $sp, 24
-       jr $ra
-####### </doesNotTested>
+	lw      $a0, 0($sp)
+	lw      $a1, 4($sp)
+	lw      $a2, 8($sp)
+	lw      $a3, 12($sp)
+	lw      $s0, 16($sp)
+	lw      $s1, 20($sp)
+	lw      $ra, 24($sp)
+	addi    $sp, $sp, 32 	# Destroy stack (8 bytes)
+
+	jr 	$ra
 
 # ------------------------------------------------------------------------------------------------- #
 # INTERRUPT SERVICE ROUTINES
