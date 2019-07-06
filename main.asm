@@ -80,6 +80,15 @@ main:
         la      $a2, grid
         jal     drawGrid
 
+
+
+
+	la 	$t0, movementBuffer
+	li 	$t1, 1
+	sw 	$zero, 0($t0)
+	sw 	$t1, 4 ($t0)
+	sb 	$t1, 9 ($t0)
+
 mainLoop:
 
 	# TODO: verify FlagGameOver and goto mainFinish
@@ -146,6 +155,7 @@ calculateMovements:
 calculateMovementsLoop:
 	lb 	$t9, 16($s0)	# type
 	bne 	$t9, TYPE_GHOST, calculateMovementsPacman
+		## Calculate Movements of Ghost
 		# if (agent.movX == 0 AND agent.movY==0) go random
 		lw 	$a2, 8($s0)	# a2 = agent.movX
 		lw 	$a3, 12($s0)	# a3 = agent.movY
@@ -153,7 +163,6 @@ calculateMovementsLoop:
 		bne	$a3, $zero, calculateMovementsGhostNormal
 		j 	calculateMovementsGhostRandom
 	calculateMovementsGhostNormal:
-		## Calculate Movements of Ghost
 		# if (posX%7==0 and posY%7==0) Calculate movement
 		lw 	$t0, 4($s0)
 		li	$t1, Y_SCALE
@@ -170,7 +179,7 @@ calculateMovementsLoop:
 		# Frontal visual search
 		lw $a0, 0($s0)         # a0 = agent.x
 		lw $a1, 4($s0)         # a0 = agent.y
-		li 	$t0, 7
+		li 	$t0, 7#TODO
 		div	$a0, $a0, $t0
 		div	$a1, $a1, $t0
 		lw 	$a2, 8($s0)	# a2 = agent.movX
@@ -198,14 +207,14 @@ calculateMovementsLoop:
 	  	# }
 
 		# impede iterações infinitas
-# 		addi 	$t8,$t8, 1
-# 		li 	$t0, 5
-# 		blt 	$t8, $t0, go_On
-# 		sw 	$zero, 8($s0)
-# 		sw 	$zero, 12($s0)
-# 		li 	$t8, 0
-# 		j 	calculateMovementsNext
-# 		go_On:
+		# 		addi 	$t8,$t8, 1
+		# 		li 	$t0, 5
+		# 		blt 	$t8, $t0, go_On
+		# 		sw 	$zero, 8($s0)
+		# 		sw 	$zero, 12($s0)
+		# 		li 	$t8, 0
+		# 		j 	calculateMovementsNext
+		# 		go_On:
 
 		li 	$v0, 42
 		li 	$a2, 3
@@ -266,39 +275,52 @@ calculateMovementsLoop:
 
 calculateMovementsPacman:
 	bne 	$t9, TYPE_PACMAN, calculateMovementsScaredGhost
-		#### <doesNotTested>
-		## PACMAN MOVEMENT HERE
-		# la $t0, mov_buf
-		# lw $t1, 0($t0)
-		# beqz $t1, skip_update_move     # if (mov_buf.isValid == False) jump
-		# lw $a0, 4($t0)         # a0 = mov_buf.x
-		# lw $a1, 8($t0)         # a1 = mov_buf.y
-		#
-		# lw $t1, 4($s0)         # t1 = agent.x
-		# lw $t2, 8($s0)         # t2 = agent.y
-		#
-		# div $t3, $t1, 7        # t3 = agent.x/7 (integer)
-		# mfhi $t4
-		# div $t5, $t2, 7        # t5 = agent.y/7 (integer)
-		# mfhi $t6
-		#
-		# bnez $t4, skip_update_move     # if (agent.x%7 != 0 || agent.y%7 != 0) jump
-		# bnez $t6, skip_update_move
-		# add $a0, $a0, $t3              # a0 = mov_buf.x + agent.x/7 (integer)
-		# add $a1, $a1, $t5              # a1 = mov_buf.y + agent.y/7 (integer)
-		# la  $a2, grid
-		# jal return_wall
-		# bnez $v0, skip_update_move     # if (checkWall == wall) jump
-		# la $t0, mov_buf
-		# lw $a0, 4($t0)
-		# lw $a1, 8($t0)
-		# sw $a0, 12($s0)                # agent.movX = mov_buf.x
-		# sw $a1, 16($s0)                # agent.movY = mov_buf.y
-		# sw $zero, 0($t0)               # clear mov_buf.isValid
-		#
-		# skip_update_move:
+		## Calculate Movements of Pacman
+		lw 	$t0, 0($s0)        	# t0 = agent.x
+		lw 	$t1, 4($s0)        	# t1 = agent.y
 
-		#### </doesNotTested>
+		div 	$t2, $t0, X_SCALE	# t2 = agent.x/7
+		mfhi	$t3			# t3 = agent.x%7
+		div 	$t4, $t1, Y_SCALE	# t4 = agent.y/7
+		mfhi	$t5			# t5 = agent.y%7
+
+		# if (agent.x%7==0 and agent.y%7=0) Calculate movement
+		bne	$t3, $zero, calculateMovementsNext
+		bne	$t5, $zero, calculateMovementsNext
+
+		## If movement is not possible, stop
+		lw 	$a0, 8($s0)			# a0 = agent.movX
+		lw 	$a1, 12($s0)			# a1 = agent.movY
+
+		add 	$a0, $a0, $t2              	# a0 = agent.movX + agent.x/7
+		add 	$a1, $a1, $t4              	# a1 = agent.movY + agent.y/7
+		la  	$a2, grid
+		jal 	gridGetID			# gridGetID (X, Y, &grid)
+		IS_WALL ($v0)
+		beqz 	$v0, calculateMovementsPacmanCheckBuffer     # if (checkWall == wall) stop
+
+		sw 	$zero, 8($s0)                 	# agent.movX = 0
+		sw 	$zero, 12($s0)                	# agent.movY = 0
+
+	calculateMovementsPacmanCheckBuffer:
+		## If movementBuffer is valid and possible, update agent movement vector
+		lb 	$t9, 9($s1)
+		beqz 	$t9, calculateMovementsNext     # if (movementBuffer.isValid == False) jump
+		lw 	$a0, 0($s1)			# a0 = movementBuffer.x
+		lw 	$a1, 4($s1)			# a1 = movementBuffer.y
+
+		add 	$a0, $a0, $t2              	# a0 = movementBuffer.x + agent.x/7
+		add 	$a1, $a1, $t4              	# a1 = movementBuffer.y + agent.y/7
+		la  	$a2, grid
+		jal 	gridGetID			# gridGetID (X, Y, &grid)
+		IS_WALL ($v0)
+		bnez 	$v0, calculateMovementsNext     # if (checkWall == wall) jump
+
+		lw 	$t0, 0($s1)
+		lw 	$t1, 4($s1)
+		sw 	$t0, 8($s0)                 	# agent.movX = movementBuffer.x
+		sw 	$t1, 12($s0)                	# agent.movY = movementBuffer.y
+		sb 	$zero, 0($s1)               # clear movementBuffer.isValid
 		j 	calculateMovementsNext
 calculateMovementsScaredGhost:
 	bne 	$t9, TYPE_SCARED_GHOST, calculateMovementsEnd
@@ -382,7 +404,7 @@ gridGetID:
        sw $s1, 20($sp)
 
        move $s0, $a1	# s0 = Y
-       move $s1, $a0	# s1 = X
+       move $s1, $a0	# s1 = X	#TODO: inversão zuada
 
        mulu $s0, $s0, GRID_COLS # s0 *= 35
        add $s1, $s1, $s0
