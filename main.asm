@@ -83,11 +83,11 @@ main:
 
 
 
-	la 	$t0, movementBuffer
-	li 	$t1, 1
-	sw 	$zero, 0($t0)
-	sw 	$t1, 4 ($t0)
-	sb 	$t1, 9 ($t0)
+	# la 	$t0, movementBuffer
+	# li 	$t1, 1
+	# sw 	$zero, 0($t0)
+	# sw 	$t1, 4 ($t0)
+	# sb 	$t1, 9 ($t0)
 
 mainLoop:
 
@@ -304,7 +304,7 @@ calculateMovementsPacman:
 
 	calculateMovementsPacmanCheckBuffer:
 		## If movementBuffer is valid and possible, update agent movement vector
-		lb 	$t9, 9($s1)
+		lb 	$t9, 8($s1)
 		beqz 	$t9, calculateMovementsNext     # if (movementBuffer.isValid == False) jump
 		lw 	$a0, 0($s1)			# a0 = movementBuffer.x
 		lw 	$a1, 4($s1)			# a1 = movementBuffer.y
@@ -320,7 +320,7 @@ calculateMovementsPacman:
 		lw 	$t1, 4($s1)
 		sw 	$t0, 8($s0)                 	# agent.movX = movementBuffer.x
 		sw 	$t1, 12($s0)                	# agent.movY = movementBuffer.y
-		sb 	$zero, 0($s1)               # clear movementBuffer.isValid
+		sb 	$zero, 8($s1)               # clear movementBuffer.isValid
 		j 	calculateMovementsNext
 calculateMovementsScaredGhost:
 	bne 	$t9, TYPE_SCARED_GHOST, calculateMovementsEnd
@@ -541,6 +541,7 @@ ISR0:
 	addi	$sp, $sp, -16	# create stack (4 bytes)
 	sw	$ra, 8($sp)	# save ra
 
+	la 	$s0, movementBuffer
 	li	$t0, 0xffff0000	# Mars keyboard and display base addr
 	lw	$s1, 4 ($t0)	# s1 = char (received by keyboad)
 
@@ -554,13 +555,54 @@ ISR0:
         li      $t7, 83         # t7 = 'S'
         li      $t8, 32         # t8 = ' '
 
-	# PROCESS KEYBOARD HERE
+	# PROCESS KEYBOARD
 	# if (char == 'a' or char == 'A'){
 	#   movementBuffer.movX = -1
 	#   movementBuffer.movY = 0
 	#   movementBuffer.isValid = 1
 	# }
 	# if (char == 'w' or char == 'W') ...
+	beq 	$s1, $t0, ISR0A
+	beq 	$s1, $t4, ISR0A
+	beq 	$s1, $t1, ISR0W
+	beq 	$s1, $t5, ISR0W
+	beq 	$s1, $t2, ISR0D
+	beq 	$s1, $t6, ISR0D
+	beq 	$s1, $t3, ISR0S
+	beq 	$s1, $t7, ISR0S
+	beq 	$s1, $t8, ISR0Space
+	j 	ISR0end
+ISR0A:
+	li 	$t0, -1
+	sw 	$t0, 0($s0)
+	sw 	$zero, 4($s0)
+	li 	$t2, 1
+	sb 	$t2, 8($s0)
+	j 	ISR0end
+ISR0W:
+	li 	$t1, -1
+	sw 	$zero, 0($s0)
+	sw 	$t1, 4($s0)
+	li 	$t2, 1
+	sb 	$t2, 8($s0)
+	j 	ISR0end
+ISR0D:
+	li 	$t0, 1
+	sw 	$t0, 0($s0)
+	sw 	$zero, 4($s0)
+	li 	$t2, 1
+	sb 	$t2, 8($s0)
+	j 	ISR0end
+ISR0S:
+	li 	$t1, 1
+	sw 	$zero, 0($s0)
+	sw 	$t1, 4($s0)
+	li 	$t2, 1
+	sb 	$t2, 8($s0)
+	j 	ISR0end
+ISR0Space:
+	# TODO: set flag
+
 ISR0end:
   	lw	$ra, 8($sp)	# restore ra
   	add	$sp, $sp, 16	# destroy stack (4 bytes)
