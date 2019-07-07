@@ -56,6 +56,15 @@ movementBuffer:
 .align 2
 .space 9 # 9 = 4+4+1
 
+# ------------- #
+# Global flags {
+#   byte gamePaused,	// 0(base)
+#   byte gameOver	// 1(base)
+#   byte invencible 	// 2(base)
+# }
+globalFlags:
+.space 3
+
 # --------------------------------------------------- #
 # Main
 # --------------------------------------------------- #
@@ -80,19 +89,16 @@ main:
         la      $a2, grid
         jal     drawGrid
 
-
-
-
-	# la 	$t0, movementBuffer
-	# li 	$t1, 1
-	# sw 	$zero, 0($t0)
-	# sw 	$t1, 4 ($t0)
-	# sb 	$t1, 9 ($t0)
-
 mainLoop:
+	# Check flag: gamePaused
+	la 	$s0, globalFlags
+	lb 	$t0, 0($s0)
+	bne 	$t0, $zero, mainLoop # if (globalFlags.gamePaused == True) Jump
 
-	# TODO: verify FlagGameOver and goto mainFinish
-	# TODO: verify flagPause and goto mainLoop
+	# Check flag: gameOver
+	lb 	$t0, 1($s0)
+	bne 	$t0, $zero, mainFinish # if (globalFlags.gameOver == True) Jump
+
 
 	la 	$a0, agentsArray
 	la 	$a1, movementBuffer
@@ -109,11 +115,18 @@ mainLoop:
         b mainLoop
 
 mainFinish:
+	# Draw final grid
+	li      $a0, GRID_ROWS
+	li      $a1, GRID_COLS
+	la      $a2, grid2
+	jal     drawGrid
+
 	addi 	$sp, $sp, 8 	# Destroy stack (2 bytes)
 
-	li	$v0, 17			# Service terminate
-	li	$a0, 0			# Service parameter (termination result)
+	li	$v0, 17		# Service terminate
+	li	$a0, 0		# Service parameter (termination result)
 	syscall
+
 #=================================================================
 # FUNCTION void calculateMovements (*agentsArray, *movementBuffer)
 #=================================================================
@@ -284,6 +297,11 @@ calculateMovementsPacman:
 		div 	$t4, $t1, Y_SCALE	# t4 = agent.y/7
 		mfhi	$t5			# t5 = agent.y%7
 
+		# if DEAD
+		# la 	$t0, globalFlags
+		# li 	$t1, 1
+		# sb 	$t1, 1($t0)
+		#
 		# if (agent.x%7==0 and agent.y%7=0) Calculate movement
 		bne	$t3, $zero, calculateMovementsNext
 		bne	$t5, $zero, calculateMovementsNext
@@ -395,30 +413,16 @@ moveAgentsEnd:
 #===========================================
 # FUNCTION int gridGetID (X,Y, *grid)
 #===========================================
-# Mult por linha, soma coluna, mult por 4 e soma com endere�o base
+# Brief: return the element (X,Y) from the grid
 .globl gridGetID
 gridGetID:
-       addi $sp, $sp, -32
-       sw $ra, 24($sp)
-       sw $s0, 16($sp)
-       sw $s1, 20($sp)
+        mulu 	$a1, $a1, GRID_COLS 	# y *= 35
+        add 	$a0, $a0, $a1		# a0 = X + 35Y
+        add  	$a0,$a0, $a2		# a0 = &grid + X + 35Y
+        lb   	$a0, 0($a0)		# load from (&grid + X + 35Y)
+        addi 	$v0, $a0, -64		# convert ascii to ID
 
-       move $s0, $a1	# s0 = Y
-       move $s1, $a0	# s1 = X	#TODO: inversão zuada
-
-       mulu $s0, $s0, GRID_COLS # s0 *= 35
-       add $s1, $s1, $s0
-       add  $s1,$s1, $a2
-       lb   $s1, 0($s1)		# load from (&grid + X + 35Y)
-       addi $v0, $s1, -64
-
-       lw $ra, 24($sp)
-       lw $s0, 16($sp)
-       lw $s1, 20($sp)
-
-       addi $sp, $sp, 32
-       jr $ra
-
+        jr 	$ra			# return ID
 #===========================================
 # FUNCTION (type, dist) visualSeach (x, y, dirX, dirY)
 #===========================================
@@ -462,10 +466,14 @@ visualSearch:
 	sw      $ra, 24($sp)
 
 	# v0 = gridGetID (x, y)
+	sw 	$a0, 32($sp)	# save a0
+	sw 	$a1, 36($sp)	# save a1
 	sw 	$a2, 40($sp)	# save a2
 	la  	$a2, grid
 	jal 	gridGetID
 	move 	$s1, $v0	# save v0
+	lw 	$a0, 32($sp)	# restore a0
+	lw 	$a1, 36($sp)	# restore a1
 	lw 	$a2, 40($sp)	# restore a2
 
 	# for each agent in agentsArray:
@@ -537,6 +545,14 @@ visualSearchReturn:
   # |-----------|
   # | $a0       | 00 ($sp) (available for the next function)
   # |-----------|
+# Pseudocode
+  # char = readKeyboard()
+  # if (char == 'a' or char == 'A'){
+  #   movementBuffer.movX = -1
+  #   movementBuffer.movY = 0
+  #   movementBuffer.isValid = 1
+  # }
+  # if (char == 'w' or char == 'W') ...
 ISR0:
 	addi	$sp, $sp, -16	# create stack (4 bytes)
 	sw	$ra, 8($sp)	# save ra
@@ -546,7 +562,7 @@ ISR0:
 	lw	$s1, 4 ($t0)	# s1 = char (received by keyboad)
 
         li      $t0, 97         # t0 = 'a'
-        li      $t1, 77         # t1 = 'w'
+        li      $t1, 119         # t1 = 'w'
         li      $t2, 100        # t2 = 'd'
         li      $t3, 115        # t3 = 's'
         li      $t4, 65         # t4 = 'A'
@@ -555,13 +571,6 @@ ISR0:
         li      $t7, 83         # t7 = 'S'
         li      $t8, 32         # t8 = ' '
 
-	# PROCESS KEYBOARD
-	# if (char == 'a' or char == 'A'){
-	#   movementBuffer.movX = -1
-	#   movementBuffer.movY = 0
-	#   movementBuffer.isValid = 1
-	# }
-	# if (char == 'w' or char == 'W') ...
 	beq 	$s1, $t0, ISR0A
 	beq 	$s1, $t4, ISR0A
 	beq 	$s1, $t1, ISR0W
@@ -586,6 +595,7 @@ ISR0W:
 	li 	$t2, 1
 	sb 	$t2, 8($s0)
 	j 	ISR0end
+
 ISR0D:
 	li 	$t0, 1
 	sw 	$t0, 0($s0)
@@ -601,8 +611,10 @@ ISR0S:
 	sb 	$t2, 8($s0)
 	j 	ISR0end
 ISR0Space:
-	# TODO: set flag
-
+	la 	$t0, globalFlags
+	lb 	$t1, 0($t0)
+	not	$t1, $t1
+	sb 	$t1, 0($t0) # globalFlags.gamePaused = ~globalFlags.gamePaused
 ISR0end:
   	lw	$ra, 8($sp)	# restore ra
   	add	$sp, $sp, 16	# destroy stack (4 bytes)
