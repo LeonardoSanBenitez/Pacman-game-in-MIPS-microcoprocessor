@@ -95,6 +95,10 @@ mainLoop:
 	lb 	$t0, 0($s0)
 	bne 	$t0, $zero, mainLoop # if (globalFlags.gamePaused == True) Jump
 
+	# Check flag: invencible
+	# Verify timer (30s)
+	# jump gameOver
+
 	# Check flag: gameOver
 	lb 	$t0, 1($s0)
 	bne 	$t0, $zero, mainFinish # if (globalFlags.gameOver == True) Jump
@@ -132,15 +136,24 @@ mainFinish:
 # Brief: calculate the next movent of all agents (AI controled and used controled)
 # Pseudocode
   # for each agent in agentsArray:
-  #   if (agent.type == ghost){
-  #     if (posX%7==0 and posY%7==0) revert movement
-  #   } else if (agent.type == pacman){
+  #   switch(agent.type){
+  #   Case ghost:
+  #	if (agent.x==pacman.x and agent.y==pacman.y) set gameOver flag
+  #	if (agent is motionless) moveRandom
+  #     if (posX%7==0 and posY%7==0){
+  #	  visualSeach (agent.x+agent.movX, agent.y+agent.movY, agent.movX, agent.movY)
+  #	  if (dist==0 and type==wall) Change direction randomly
+  #	}
+  #     break
+  #   Case pacman:
   #     read movementBuffer
   #     check wall
   #     agent.posX = agent.posX + buffer.movX
   #     agent.posY = agent.posY + buffer.movY
-  #   } else if (agent.type == scaredGhost){
-  #     run away from pacman
+  #     break
+  #   Case scaredGhost:
+  #     move randomly
+  #     break
   #   }
 # Stack organization
   # | $a1       | 36 ($sp) (previous frame)
@@ -155,7 +168,6 @@ mainFinish:
   # | $a1       | 04 ($sp) (available to the next funtion)
   # | $a0       | 00 ($sp) (available to the next funtion)
   # |-----------|
-# TODO: atualizar pseudo codigo
 calculateMovements:
 	addi    $sp, $sp, -32 	# Create stack (8 bytes)
 	sw      $s0, 16($sp)
@@ -323,10 +335,11 @@ calculateMovementsPacman:
 		div 	$t4, $t1, Y_SCALE	# t4 = agent.y/7
 		mfhi	$t5			# t5 = agent.y%7
 
-	calculateMovementsPacmanAlive:
 		# if (agent.x%7==0 and agent.y%7=0) Calculate movement
 		bne	$t3, $zero, calculateMovementsNext
 		bne	$t5, $zero, calculateMovementsNext
+
+		# check invencibility
 
 		## If movement is not possible, stop
 		lw 	$a0, 8($s0)			# a0 = agent.movX
@@ -447,6 +460,7 @@ agentCheckBoundsEnd:
 # Brief: update positions and draw all the agents
 # Pseudocode
   # for each agent in agentsArray:
+  #   redraw background
   #   agent.posX = agent.posX + agent.movX
   #   agent.posX = agent.posX + agent.movX
   #   draw (agent.posX, agent.posY, agent.sprite)
@@ -468,7 +482,6 @@ moveAgents:
 
 	move 	$s0, $a0	# s0 = &agent
 moveAgentsLoop:
-	# TODO: preciso redesenhar o sprite atual antes de move-lo para a proxima posição
 	lb 	$t0, 16($s0)	# load type
 	beq 	$t0, TYPE_LAST, moveAgentsEnd
 
@@ -476,6 +489,7 @@ moveAgentsLoop:
 	lw 	$a1, 4($s0)	# load posY
 	lw 	$t0, 8($s0)	# load movX
 	lw 	$t1, 12($s0)	# load movY
+
 	blt 	$t0, $zero, moveAgentsDrawBackgroundLeft 	# agent moving to the left
 	bgt 	$t0, $zero, moveAgentsDrawBackgroundRight	# agent moving to the right
 	blt 	$t1, $zero, moveAgentsDrawBackgroundUp		# agent moving to the top
@@ -484,12 +498,12 @@ moveAgentsLoop:
 
 moveAgentsDrawBackgroundLeft:
 	li 	$t9, 238
-	bge 	$a0, $t9, moveAgentsDrawBackground
+	bge 	$a0, $t9, moveAgentsDrawBackground	# Teletransport case
 	addi 	$a0, $a0, 7
 	j 	moveAgentsDrawBackground
 moveAgentsDrawBackgroundUp:
 	li 	$t9, 238
-	bge 	$a1, $t9, moveAgentsDrawBackground
+	bge 	$a1, $t9, moveAgentsDrawBackground	# Teletransport case
 	addi 	$a1, $a1, 7
 	j 	moveAgentsDrawBackground
 moveAgentsDrawBackgroundRight:
