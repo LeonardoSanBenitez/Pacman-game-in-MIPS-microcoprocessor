@@ -44,7 +44,7 @@ ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
 ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
 ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
 ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
-ALLOC_AGENT (000, 000, 0, 0, TYPE_LAST, 0)
+ALLOC_AGENT (007, 007, 0, 0, TYPE_LAST, 0)
 
 # ------------- #
 # struct movementBuffer {
@@ -98,7 +98,6 @@ mainLoop:
 	# Check flag: gameOver
 	lb 	$t0, 1($s0)
 	bne 	$t0, $zero, mainFinish # if (globalFlags.gameOver == True) Jump
-
 
 	la 	$a0, agentsArray
 	la 	$a1, movementBuffer
@@ -166,9 +165,35 @@ calculateMovements:
 	move 	$s0, $a0	# s0 = &agent
 	move 	$s1, $a1	# s1 = &movementBuffer
 calculateMovementsLoop:
+	move 	$a0, $s0
+	jal 	agentCheckBounds
+
 	lb 	$t9, 16($s0)	# type
 	bne 	$t9, TYPE_GHOST, calculateMovementsPacman
 		## Calculate Movements of Ghost
+
+		# if (agent.x==pacman.x and agent.y==pacman.y) KILL PACMAN
+		lw 	$t0, 0($s0)
+		li	$t9, X_SCALE
+		div	$t0, $t9	# t0 = agent.x
+		lw 	$t1, 4($s0)
+		li	$t9, Y_SCALE
+		div	$t1, $t9	# t1 = agent.y
+		la 	$s1, agentsArray
+		lw 	$t2, 0($s1)
+		li	$t9, X_SCALE
+		div	$t2, $t9	# t2 = pacman.x
+		lw 	$t3, 4($s1)
+		li	$t9, Y_SCALE
+		div	$t3, $t9	# t3 = pacman.y
+
+		bne 	$t0, $t2, calculateMovementsGhostCheckMotion
+		bne 	$t1, $t3, calculateMovementsGhostCheckMotion
+		la 	$t0, globalFlags
+		li 	$t1, 1
+		sb 	$t1, 1($t0)
+
+	calculateMovementsGhostCheckMotion:
 		# if (agent.movX == 0 AND agent.movY==0) go random
 		lw 	$a2, 8($s0)	# a2 = agent.movX
 		lw 	$a3, 12($s0)	# a3 = agent.movY
@@ -192,8 +217,9 @@ calculateMovementsLoop:
 		# Frontal visual search
 		lw $a0, 0($s0)         # a0 = agent.x
 		lw $a1, 4($s0)         # a0 = agent.y
-		li 	$t0, 7#TODO
+		li 	$t0, X_SCALE
 		div	$a0, $a0, $t0
+		li 	$t0, Y_SCALE
 		div	$a1, $a1, $t0
 		lw 	$a2, 8($s0)	# a2 = agent.movX
 		lw 	$a3, 12($s0)	# a3 = agent.movY
@@ -297,11 +323,7 @@ calculateMovementsPacman:
 		div 	$t4, $t1, Y_SCALE	# t4 = agent.y/7
 		mfhi	$t5			# t5 = agent.y%7
 
-		# if DEAD
-		# la 	$t0, globalFlags
-		# li 	$t1, 1
-		# sb 	$t1, 1($t0)
-		#
+	calculateMovementsPacmanAlive:
 		# if (agent.x%7==0 and agent.y%7=0) Calculate movement
 		bne	$t3, $zero, calculateMovementsNext
 		bne	$t5, $zero, calculateMovementsNext
@@ -359,7 +381,68 @@ calculateMovementsEnd:
 	jr 	$ra
 
 #===========================================
-# FUNCTION void moveAgents (agentsArray)
+# FUNCTION void agentCheckBounds (&agent)
+#===========================================
+# Brief: used to allow "teletransportation"
+# Pseudocode
+  # if (agent.x<0) agent.x=245; redraw(agent.x, agent.y, gridGetID(agent.x, agent.y, &grid))
+  # if (agent.x>245) agent.x=0; redraw(agent.x, agent.y, gridGetID(agent.x, agent.y, &grid))
+  # if (agent.y<0) agent.y=245; redraw(agent.x, agent.y, gridGetID(agent.x, agent.y, &grid))
+  # if (agent.y>245) agent.y=0; redraw(agent.x, agent.y, gridGetID(agent.x, agent.y, &grid))
+# Stack organization
+  # | $ra       | 20 ($sp)
+  # | $t1       | 16 ($sp)
+  # | $t0       | 12 ($sp)
+  # | $a2       | 08 ($sp) (available to the next funtion)
+  # | $a1       | 04 ($sp) (available to the next funtion)
+  # | $a0       | 00 ($sp) (available to the next funtion)
+  # |-----------|
+agentCheckBounds:
+	lw 	$t0, 0($a0)	# x
+	lw 	$t1, 4($a0)	# y
+	li 	$t2, 238
+
+	ble 	$t0, $zero, agentCheckBoundsX1
+	bge 	$t0, $t2, agentCheckBoundsX2
+	ble 	$t1, $zero, agentCheckBoundsY1
+	bge 	$t1, $t2, agentCheckBoundsY2
+	j 	agentCheckBoundsEnd
+agentCheckBoundsX1:
+	sw 	$t2, 0($a0)
+	j 	agentCheckBoundsRedraw
+agentCheckBoundsX2:
+	sw 	$zero, 0($a0)
+	j 	agentCheckBoundsRedraw
+agentCheckBoundsY1:
+	sw 	$t2, 4($a0)
+	j 	agentCheckBoundsRedraw
+agentCheckBoundsY2:
+	sw 	$zero, 4($a0)
+	j 	agentCheckBoundsRedraw
+agentCheckBoundsRedraw:
+	# The stack is done only here for optimization pourpouses
+	addi 	$sp, $sp, -24
+	sw 	$t0, 12($sp)
+	sw 	$t1, 16($sp)
+	sw 	$ra, 20($sp)
+
+	li 	$t9, X_SCALE
+	div 	$a0, $t0, $t9
+	li 	$t9, Y_SCALE
+	div 	$a1, $t1, $t9
+	la 	$a2, grid
+	jal 	gridGetID
+	lw 	$a0, 12($sp)
+	lw 	$a1, 16($sp)
+	move 	$a2, $v0
+	jal 	drawSprite
+	lw 	$ra, 20($sp)
+	addi 	$sp, $sp, 24
+agentCheckBoundsEnd:
+	jr 	$ra
+
+#===========================================
+# FUNCTION void moveAgents (&agentsArray)
 #===========================================
 # Brief: update positions and draw all the agents
 # Pseudocode
@@ -384,9 +467,31 @@ moveAgents:
 
 	move 	$s0, $a0	# s0 = &agent
 moveAgentsLoop:
-	# TODO: para os fantasas, preciso redesenhar o sprite atual antes de move-lo para a proxima posição
+	# TODO: preciso redesenhar o sprite atual antes de move-lo para a proxima posição
 	lb 	$t0, 16($s0)	# load type
 	beq 	$t0, TYPE_LAST, moveAgentsEnd
+
+	lw 	$a0, 0($s0)	# load posX
+	lw 	$a1, 4($s0)	# load posY
+	li 	$t9, X_SCALE
+	div 	$a0, $a0, $t9
+	li 	$t9, Y_SCALE
+	div 	$a1, $a1, $t9
+	la 	$a2, grid
+	jal 	gridGetID
+	lw 	$a0, 0($s0)	# load posX
+	lw 	$a1, 4($s0)	# load posY
+	FLOOR($a0, X_SCALE)
+	FLOOR($a1, X_SCALE)
+	move 	$a2, $v0
+	jal 	drawSprite
+
+
+
+
+
+
+
 	lb 	$a2, 17($s0)	# load sprite
 	lw 	$a0, 0($s0)	# load posX
 	lw 	$a1, 4($s0)	# load posY
@@ -421,8 +526,8 @@ gridGetID:
         add  	$a0,$a0, $a2		# a0 = &grid + X + 35Y
         lb   	$a0, 0($a0)		# load from (&grid + X + 35Y)
         addi 	$v0, $a0, -64		# convert ascii to ID
-
         jr 	$ra			# return ID
+
 #===========================================
 # FUNCTION (type, dist) visualSeach (x, y, dirX, dirY)
 #===========================================

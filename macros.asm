@@ -70,3 +70,10 @@ mStr: .asciiz %str
     la $a0, mStr
     syscall
 .end_macro
+
+# ==============================================================================
+# OTHERS MACROS
+.macro FLOOR (%value, %multiple)
+div 	%value, %value, %multiple
+mul	%value, %value, %multiple
+.end_macro
