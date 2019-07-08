@@ -40,10 +40,10 @@ agentsArray:
 ALLOC_AGENT (119, 140, 0, 0, TYPE_PACMAN, 3)
 ALLOC_AGENT (105, 105, 0, 0, TYPE_GHOST, 21)
 ALLOC_AGENT (105, 119, 0, 0, TYPE_GHOST, 20)
-ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
-ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
-ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
-ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
+#ALLOC_AGENT (112, 112, 0, 0, TYPE_GHOST, 2)
+#ALLOC_AGENT (126, 112, 0, 0, TYPE_GHOST, 2)
+#ALLOC_AGENT (133, 105, 0, 0, TYPE_GHOST, 20)
+#ALLOC_AGENT (133, 119, 0, 0, TYPE_GHOST, 21)
 ALLOC_AGENT (007, 007, 0, 0, TYPE_LAST, 0)
 
 # ------------- #
@@ -481,17 +481,34 @@ moveAgentsLoop:
 	jal 	gridGetID
 	lw 	$a0, 0($s0)	# load posX
 	lw 	$a1, 4($s0)	# load posY
+	lw 	$t0, 8($s0)	# load movX
+	lw 	$t1, 12($s0)	# load movY
+
 	FLOOR($a0, X_SCALE)
 	FLOOR($a1, X_SCALE)
 	move 	$a2, $v0
+	blt 	$t0, $zero, moveAgentsDrawBackgroundLeft 	# agent moving to the left
+	bgt 	$t0, $zero, moveAgentsDrawBackgroundRight	# agent moving to the right
+	blt 	$t1, $zero, moveAgentsDrawBackgroundUp		# agent moving to the top
+	bgt 	$t1, $zero, moveAgentsDrawBackgroundDown	# agent moving to the bottom
+	j 	moveAgentsDrawAgent				# not moving
+
+moveAgentsDrawBackgroundLeft:
+	addi 	$a0, $a0, 7
 	jal 	drawSprite
+	j 	moveAgentsDrawAgent
+moveAgentsDrawBackgroundUp:
+	addi 	$a1, $a1, 7
+	jal 	drawSprite
+	j 	moveAgentsDrawAgent
+moveAgentsDrawBackgroundRight:
+	jal 	drawSprite
+	j 	moveAgentsDrawAgent
+moveAgentsDrawBackgroundDown:
+	jal 	drawSprite
+	j 	moveAgentsDrawAgent
 
-
-
-
-
-
-
+moveAgentsDrawAgent:
 	lb 	$a2, 17($s0)	# load sprite
 	lw 	$a0, 0($s0)	# load posX
 	lw 	$a1, 4($s0)	# load posY
