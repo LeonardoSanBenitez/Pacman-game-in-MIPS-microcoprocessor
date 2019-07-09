@@ -340,7 +340,36 @@ calculateMovementsPacman:
 		bne	$t5, $zero, calculateMovementsNext
 
 		# check invencibility
+		lw 	$a0, 0($s0)	# load posX
+		lw 	$a1, 4($s0)	# load posY
+		li 	$t9, X_SCALE
+		div 	$a0, $a0, $t9
+		li 	$t9, Y_SCALE
+		div 	$a1, $a1, $t9
+		la 	$a2, grid
+		jal 	gridGetID
+		li 	$t9, 1
+		bne 	$v0, $t9, calculateMovementsPacmanNotInvencible
+		la 	$s1, agentsArray
+	calculateMovementsPacmanScareGhosts:
+		lb 	$t0, 16($s1) #load agent.type
 
+		beq 	$t0, TYPE_LAST, calculateMovementsPacmanNotInvencible
+		# if (agent.type==ghost) agent.type=scaredGhost; agent.sprite=scaredGhost
+		bne 	$t0, TYPE_GHOST, calculateMovementsPacmanScareGhostsEnd
+		li 	$t8, TYPE_SCARED_GHOST
+		li 	$t9, 21
+		sb 	$t8, 16($s1)
+		sb 	$t9, 17($s1)
+		######################TODO: this bug all the game ##############
+		# Para ignorar a invencibilidade, remova esses store
+
+	calculateMovementsPacmanScareGhostsEnd:
+		addi 	$s1, $s1, STRUCT_AGENT_SIZE
+		j 	calculateMovementsPacmanScareGhosts
+
+
+	calculateMovementsPacmanNotInvencible:
 		## If movement is not possible, stop
 		lw 	$a0, 8($s0)			# a0 = agent.movX
 		lw 	$a1, 12($s0)			# a1 = agent.movY
@@ -377,10 +406,8 @@ calculateMovementsPacman:
 		j 	calculateMovementsNext
 calculateMovementsScaredGhost:
 	bne 	$t9, TYPE_SCARED_GHOST, calculateMovementsEnd
-		####
-		## SCARED GHOST MOVEMENT HERE
-		## The ghost will be scared when Pacman is invencible
-		####
+		sw 	$zero, 8($s0)
+		sw 	$zero, 12($s0)
 calculateMovementsNext:
 	addi 	$s0, $s0, STRUCT_AGENT_SIZE
 	j 	calculateMovementsLoop

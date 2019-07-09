@@ -42,8 +42,9 @@ Some screenshots:
   * Agente reativo simples
 * Percebe o estado atual e toma uma decisão
   
+
 ![1560557635419](Images/1560557635419.png)
-  
+
 * **Movimentação do agente**
   * A cada iteração, o agente monitora seu ‘campo de visão’: linhas retas à frente e aos lados, até encontrar uma parede
   * Se ele ver o pacman, seu objetivo é ir na sua direção. Se não ver, continua se movendo da mesma direção
@@ -57,5 +58,7 @@ Some screenshots:
 * O “IA” foi implementado apenas um VisualSearch na direção frontal, sem buscar o pacman
 
 * Os agentes foram organizados me um array, de forma que podemos adicionar/remover mais oponentes com facilidade
+
+* A invencibilidade não terminou de ser implementada, de forma que buga o programa (tem um TODO comentado no main sobre isso)
 
   
