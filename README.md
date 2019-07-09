@@ -61,4 +61,6 @@ Some screenshots:
 
 * A invencibilidade não terminou de ser implementada, de forma que buga o programa (tem um TODO comentado no main sobre isso)
 
+* O display deve ser configurado para 512x512, com 2 unit width por pixel, com endereço base em 0x10040000 (heap)
+
   
